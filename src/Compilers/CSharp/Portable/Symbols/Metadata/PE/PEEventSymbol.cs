@@ -16,7 +16,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols.Metadata.PE
     /// <summary>
     /// The class to represent all events imported from a PE/module.
     /// </summary>
-    internal sealed class PEEventSymbol : EventSymbol
+    internal sealed class PEEventSymbol : EventSymbol, IMetadataSymbol
     {
         private readonly string _name;
         private readonly PENamedTypeSymbol _containingType;
@@ -228,6 +228,14 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols.Metadata.PE
         }
 
         internal EventDefinitionHandle Handle
+        {
+            get
+            {
+                return _handle;
+            }
+        }
+
+        Handle IMetadataSymbol.MetadataHandle
         {
             get
             {

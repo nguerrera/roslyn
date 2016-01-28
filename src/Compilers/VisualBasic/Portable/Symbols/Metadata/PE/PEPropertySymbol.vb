@@ -14,6 +14,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Metadata.PE
     ''' </summary>
     Friend NotInheritable Class PEPropertySymbol
         Inherits PropertySymbol
+        Implements IMetadataSymbol
 
         Private ReadOnly _name As String
         Private ReadOnly _flags As PropertyAttributes
@@ -69,14 +70,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Metadata.PE
 
             Dim metadataDecoder = New MetadataDecoder(moduleSymbol, containingType)
             Dim propEx As BadImageFormatException = Nothing
-            Dim propertyParams = MetadataDecoder.GetSignatureForProperty(handle, _signatureHeader, propEx)
+            Dim propertyParams = metadataDecoder.GetSignatureForProperty(handle, _signatureHeader, propEx)
             Debug.Assert(propertyParams.Length > 0)
 
             Dim unusedSignatureHeader As SignatureHeader = Nothing
             Dim getEx As BadImageFormatException = Nothing
-            Dim getParams = If(_getMethod Is Nothing, Nothing, MetadataDecoder.GetSignatureForMethod(_getMethod.Handle, unusedSignatureHeader, getEx))
+            Dim getParams = If(_getMethod Is Nothing, Nothing, metadataDecoder.GetSignatureForMethod(_getMethod.Handle, unusedSignatureHeader, getEx))
             Dim setEx As BadImageFormatException = Nothing
-            Dim setParams = If(_setMethod Is Nothing, Nothing, MetadataDecoder.GetSignatureForMethod(_setMethod.Handle, unusedSignatureHeader, setEx))
+            Dim setParams = If(_setMethod Is Nothing, Nothing, metadataDecoder.GetSignatureForMethod(_setMethod.Handle, unusedSignatureHeader, setEx))
 
             Dim signaturesMatch = DoSignaturesMatch(metadataDecoder, propertyParams, _getMethod, getParams, _setMethod, setParams)
             Dim parametersMatch = True
@@ -497,6 +498,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Metadata.PE
         End Function
 
         Friend ReadOnly Property Handle As PropertyDefinitionHandle
+            Get
+                Return _handle
+            End Get
+        End Property
+
+        Private ReadOnly Property MetadataHandle As Handle Implements IMetadataSymbol.MetadataHandle
             Get
                 Return _handle
             End Get

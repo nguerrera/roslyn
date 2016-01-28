@@ -802,3 +802,5 @@ virtual Microsoft.CodeAnalysis.Semantics.IOperationVisitor<TArgument, TResult>.V
 virtual Microsoft.CodeAnalysis.Semantics.IOperationVisitor<TArgument, TResult>.VisitWithStatement(Microsoft.CodeAnalysis.Semantics.IWithStatement operation, TArgument argument) -> TResult
 virtual Microsoft.CodeAnalysis.Semantics.IOperationVisitor<TArgument, TResult>.VisitYieldBreakStatement(Microsoft.CodeAnalysis.Semantics.IStatement operation, TArgument argument) -> TResult
 virtual Microsoft.CodeAnalysis.SourceReferenceResolver.ReadText(string resolvedPath) -> Microsoft.CodeAnalysis.Text.SourceText
+Microsoft.CodeAnalysis.IMetadataSymbol
+Microsoft.CodeAnalysis.IMetadataSymbol.MetadataHandle.get -> System.Reflection.Metadata.Handle

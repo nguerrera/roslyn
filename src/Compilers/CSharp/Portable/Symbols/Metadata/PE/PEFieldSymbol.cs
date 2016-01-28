@@ -19,7 +19,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols.Metadata.PE
     /// <summary>
     /// The class to represent all fields imported from a PE/module.
     /// </summary>
-    internal sealed class PEFieldSymbol : FieldSymbol
+    internal sealed class PEFieldSymbol : FieldSymbol, IMetadataSymbol
     {
         private readonly FieldDefinitionHandle _handle;
         private readonly string _name;
@@ -174,6 +174,14 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols.Metadata.PE
         }
 
         internal FieldDefinitionHandle Handle
+        {
+            get
+            {
+                return _handle;
+            }
+        }
+
+        Handle IMetadataSymbol.MetadataHandle
         {
             get
             {

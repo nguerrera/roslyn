@@ -17,6 +17,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Metadata.PE
     ''' <remarks></remarks>
     Friend NotInheritable Class PETypeParameterSymbol
         Inherits TypeParameterSymbol
+        Implements IMetadataSymbol
 
         Private ReadOnly _containingSymbol As Symbol ' Could be PENamedType or a PEMethod
         Private ReadOnly _handle As GenericParameterHandle
@@ -108,7 +109,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Metadata.PE
 
         Friend ReadOnly Property Handle As GenericParameterHandle
             Get
-                Return Me._handle
+                Return _handle
+            End Get
+        End Property
+
+        Private ReadOnly Property MetadataHandle As Handle Implements IMetadataSymbol.MetadataHandle
+            Get
+                Return _handle
             End Get
         End Property
 

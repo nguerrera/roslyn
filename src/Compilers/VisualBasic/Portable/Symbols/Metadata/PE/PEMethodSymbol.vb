@@ -19,6 +19,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Metadata.PE
     ''' </summary>
     Friend NotInheritable Class PEMethodSymbol
         Inherits MethodSymbol
+        Implements IMetadataSymbol
 
         Private ReadOnly _handle As MethodDefinitionHandle
         Private ReadOnly _name As String
@@ -726,6 +727,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Metadata.PE
         End Property
 
         Friend ReadOnly Property Handle As MethodDefinitionHandle
+            Get
+                Return _handle
+            End Get
+        End Property
+
+        Private ReadOnly Property MetadataHandle As Handle Implements IMetadataSymbol.MetadataHandle
             Get
                 Return _handle
             End Get

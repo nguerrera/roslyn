@@ -20,7 +20,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols.Metadata.PE
     /// <summary>
     /// The class to represent all types imported from a PE/module.
     /// </summary>
-    internal abstract class PENamedTypeSymbol : NamedTypeSymbol
+    internal abstract class PENamedTypeSymbol : NamedTypeSymbol, IMetadataSymbol
     {
         private static readonly Dictionary<string, ImmutableArray<PENamedTypeSymbol>> s_emptyNestedTypes = new Dictionary<string, ImmutableArray<PENamedTypeSymbol>>();
 
@@ -364,6 +364,14 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols.Metadata.PE
         }
 
         internal TypeDefinitionHandle Handle
+        {
+            get
+            {
+                return _handle;
+            }
+        }
+
+        Handle IMetadataSymbol.MetadataHandle
         {
             get
             {

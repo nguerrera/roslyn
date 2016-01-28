@@ -19,6 +19,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Metadata.PE
     ''' <remarks></remarks>
     Friend Class PEParameterSymbol
         Inherits ParameterSymbol
+        Implements IMetadataSymbol
 
         Private ReadOnly _containingSymbol As Symbol
         Private ReadOnly _name As String
@@ -514,6 +515,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Metadata.PE
                 Return _handle
             End Get
         End Property
+
+        Private ReadOnly Property MetadataHandle As Handle Implements IMetadataSymbol.MetadataHandle
+            Get
+                Return _handle
+            End Get
+        End Property
+
 
         Friend Overrides ReadOnly Property IsIDispatchConstant As Boolean
             Get

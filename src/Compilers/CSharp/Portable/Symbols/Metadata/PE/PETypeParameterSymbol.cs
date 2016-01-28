@@ -16,7 +16,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols.Metadata.PE
     /// </summary>
     /// <remarks></remarks>
     internal sealed class PETypeParameterSymbol
-        : TypeParameterSymbol
+        : TypeParameterSymbol, IMetadataSymbol
     {
         private readonly Symbol _containingSymbol; // Could be PENamedType or a PEMethod
         private readonly GenericParameterHandle _handle;
@@ -115,6 +115,14 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols.Metadata.PE
         }
 
         internal GenericParameterHandle Handle
+        {
+            get
+            {
+                return _handle;
+            }
+        }
+
+        Handle IMetadataSymbol.MetadataHandle
         {
             get
             {

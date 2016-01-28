@@ -16,7 +16,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols.Metadata.PE
     /// <summary>
     /// The class to represent all method parameters imported from a PE/module.
     /// </summary>
-    internal class PEParameterSymbol : ParameterSymbol
+    internal class PEParameterSymbol : ParameterSymbol, IMetadataSymbol
     {
         [Flags]
         private enum WellKnownAttributeFlags
@@ -322,6 +322,14 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols.Metadata.PE
 
         // might be Nil
         internal ParameterHandle Handle
+        {
+            get
+            {
+                return _handle;
+            }
+        }
+
+        Handle IMetadataSymbol.MetadataHandle
         {
             get
             {
