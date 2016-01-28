@@ -394,6 +394,8 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols.Metadata.PE
 
         internal MethodDefinitionHandle Handle => _handle;
 
+        public override Handle MetadataHandle => _handle;
+
         // Has to have the abstract flag.
         // NOTE: dev10 treats the method as abstract (i.e. requiring an impl in subtypes) event if it is not metadata virtual.
         public override bool IsAbstract => HasFlag(MethodAttributes.Abstract);

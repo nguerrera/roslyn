@@ -533,6 +533,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Metadata.PE
             End Get
         End Property
 
+        Public Overrides ReadOnly Property MetadataHandle As Handle
+            Get
+                Return _handle
+            End Get
+        End Property
+
+
         Friend Overrides ReadOnly Property IsIDispatchConstant As Boolean
             Get
                 If _lazyHasIDispatchConstantAttribute = ThreeState.Unknown Then

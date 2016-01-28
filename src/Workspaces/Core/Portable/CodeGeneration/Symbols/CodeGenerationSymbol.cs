@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Globalization;
+using System.Reflection.Metadata;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using Microsoft.CodeAnalysis;
@@ -291,6 +292,14 @@ namespace Microsoft.CodeAnalysis.CodeGeneration
             get
             {
                 return false;
+            }
+        }
+
+        public Handle MetadataHandle
+        {
+            get
+            {
+                return default(Handle);
             }
         }
 

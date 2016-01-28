@@ -209,7 +209,16 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols.Metadata.PE
                 return _name;
             }
         }
+
         internal PropertyDefinitionHandle Handle
+        {
+            get
+            {
+                return _handle;
+            }
+        }
+
+        public override Handle MetadataHandle
         {
             get
             {

@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Globalization;
+using System.Reflection.Metadata;
 using System.Runtime.CompilerServices;
 using System.Threading;
 
@@ -264,5 +265,16 @@ namespace Microsoft.CodeAnalysis
         /// Parameter - type is unsupported
         /// </summary>
         bool HasUnsupportedMetadata { get; }
+
+        /// <summary>
+        /// Returns the underlying handle to the metadata entity represented by this symbol
+        ///
+        /// If this is not a metadata symbol or does not have a direct 1:1 correspondence  
+        /// with a metadata entity (e.g. constructed types, unnamed parameters), then a 
+        /// nil handle (indicated via <see cref="Handle.IsNil"/>) is returned. 
+        ///
+        /// The handle is unique only among symbols having the same <see cref="ContainingModule"/>.
+        /// </summary>
+        Handle MetadataHandle { get; }
     }
 }

@@ -2,6 +2,7 @@
 
 using System.Collections.Immutable;
 using System.Globalization;
+using System.Reflection.Metadata;
 using System.Threading;
 using Microsoft.CodeAnalysis.DocumentationComments;
 
@@ -203,6 +204,14 @@ namespace Microsoft.CodeAnalysis.MetadataAsSource
                 get
                 {
                     return _symbol.HasUnsupportedMetadata;
+                }
+            }
+
+            public Handle MetadataHandle
+            {
+                get
+                {
+                    return _symbol.MetadataHandle;
                 }
             }
 

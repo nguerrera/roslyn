@@ -239,6 +239,14 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols.Metadata.PE
             }
         }
 
+        public override Handle MetadataHandle
+        {
+            get
+            {
+                return _handle;
+            }
+        }
+
         public override Accessibility DeclaredAccessibility
         {
             get

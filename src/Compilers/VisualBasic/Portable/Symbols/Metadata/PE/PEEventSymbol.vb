@@ -150,6 +150,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Metadata.PE
             End Get
         End Property
 
+        Public Overrides ReadOnly Property MetadataHandle As Handle
+            Get
+                Return _handle
+            End Get
+        End Property
+
         Public Overrides ReadOnly Property DeclaredAccessibility As Accessibility
             Get
                 If Me._lazyDeclaredAccessibility = s_unsetAccessibility Then

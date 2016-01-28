@@ -181,6 +181,14 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols.Metadata.PE
             }
         }
 
+        public override Handle MetadataHandle
+        {
+            get
+            {
+                return _handle;
+            }
+        }
+
         /// <summary>
         /// Mark this field as the backing field of a field-like event.
         /// The caller will also ensure that it is excluded from the member list of

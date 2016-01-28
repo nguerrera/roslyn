@@ -235,6 +235,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Metadata.PE
             End Get
         End Property
 
+        Public Overrides ReadOnly Property MetadataHandle As Handle
+            Get
+                Return _handle
+            End Get
+        End Property
+
+
         Friend Overrides Function GetInterfacesToEmit() As IEnumerable(Of NamedTypeSymbol)
             Return InterfacesNoUseSiteDiagnostics
         End Function

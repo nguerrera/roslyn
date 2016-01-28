@@ -3,6 +3,7 @@
 Imports System.Collections.Generic
 Imports System.Collections.Immutable
 Imports System.Globalization
+Imports System.Reflection.Metadata
 Imports System.Runtime.InteropServices
 Imports System.Text
 Imports System.Threading
@@ -864,6 +865,21 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         Public Overridable ReadOnly Property HasUnsupportedMetadata As Boolean Implements ISymbol.HasUnsupportedMetadata
             Get
                 Return False
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Returns the underlying handle to the metadata entity represented by this symbol
+        '''
+        ''' If this is not a metadata symbol or does not have a direct 1:1 correspondence
+        ''' with a metadata entity (e.g. constructed types, unnamed parameters), then a
+        ''' nil handle (indicated via <see cref="Handle.IsNil"/>) is returned.
+        '''
+        ''' The handle is unique only among symbols having the same <see cref="ContainingModule"/>.
+        ''' </summary>
+        Public Overridable ReadOnly Property MetadataHandle As Handle Implements ISymbol.MetadataHandle
+            Get
+                Return Nothing
             End Get
         End Property
 
