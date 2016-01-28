@@ -396,6 +396,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Metadata.PE
             End Get
         End Property
 
+        Public Overrides ReadOnly Property MetadataHandle As Handle
+            Get
+                Return _handle
+            End Get
+        End Property
+
         ''' <remarks>
         ''' This is for perf, not for correctness.
         ''' </remarks>

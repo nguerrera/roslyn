@@ -731,6 +731,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Metadata.PE
             End Get
         End Property
 
+        Public Overrides ReadOnly Property MetadataHandle As Handle
+            Get
+                Return _handle
+            End Get
+        End Property
+
         Public Overrides ReadOnly Property IsMustOverride As Boolean
             Get
                 Return (_flags And MethodAttributes.Virtual) <> 0 AndAlso

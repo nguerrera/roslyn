@@ -108,7 +108,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols.Metadata.PE
 
         Friend ReadOnly Property Handle As GenericParameterHandle
             Get
-                Return Me._handle
+                Return _handle
+            End Get
+        End Property
+
+        Public Overrides ReadOnly Property MetadataHandle As Handle
+            Get
+                Return _handle
             End Get
         End Property
 

@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Globalization;
+using System.Reflection.Metadata;
 using System.Threading;
 using Microsoft.CodeAnalysis.FindSymbols;
 using Microsoft.CodeAnalysis.Test.Utilities;
@@ -126,6 +127,14 @@ namespace Microsoft.CodeAnalysis.UnitTests
             }
 
             public bool HasUnsupportedMetadata
+            {
+                get
+                {
+                    throw new NotImplementedException();
+                }
+            }
+
+            public Handle MetadataHandle
             {
                 get
                 {
