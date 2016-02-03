@@ -929,3 +929,4 @@ virtual Microsoft.CodeAnalysis.Semantics.OperationVisitor<TArgument, TResult>.Vi
 virtual Microsoft.CodeAnalysis.Semantics.OperationVisitor<TArgument, TResult>.VisitWithStatement(Microsoft.CodeAnalysis.Semantics.IWithStatement operation, TArgument argument) -> TResult
 virtual Microsoft.CodeAnalysis.Semantics.OperationVisitor<TArgument, TResult>.VisitYieldBreakStatement(Microsoft.CodeAnalysis.Semantics.IReturnStatement operation, TArgument argument) -> TResult
 Microsoft.CodeAnalysis.ISymbol.MetadataHandle.get -> System.Reflection.Metadata.Handle
+Microsoft.CodeAnalysis.IModuleSymbol.GetSymbolForMetadataHandle(System.Reflection.Metadata.EntityHandle handle) -> Microsoft.CodeAnalysis.ISymbol

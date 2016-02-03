@@ -684,5 +684,10 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols.Metadata.PE
         }
 
         public override ModuleMetadata GetMetadata() => _module.GetNonDisposableMetadata();
+
+        public override ISymbol GetSymbolForMetadataHandle(EntityHandle handle)
+        {
+            return new MetadataDecoder(this).GetSymbolForILToken(handle);
+        }
     }
 }

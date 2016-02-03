@@ -2,6 +2,7 @@
 
 using Microsoft.CodeAnalysis.Text;
 using System.Collections.Immutable;
+using System.Reflection.Metadata;
 
 namespace Microsoft.CodeAnalysis
 {
@@ -45,5 +46,8 @@ namespace Microsoft.CodeAnalysis
         /// Otherwise, this returns <code>null</code>.
         /// </summary>
         ModuleMetadata GetMetadata();
+
+        // TODO: how/where should this really be exposed.
+        ISymbol GetSymbolForMetadataHandle(EntityHandle handle);
     }
 }

@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Reflection;
+using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
 using System.Runtime.InteropServices;
 using Roslyn.Utilities;
@@ -363,6 +364,10 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             }
         }
 
+        public virtual ISymbol GetSymbolForMetadataHandle(EntityHandle handle)
+        {
+            return null;
+        }
         #endregion
 
         #region ISymbol Members
@@ -383,6 +388,8 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
         /// Otherwise, this returns <code>null</code>.
         /// </summary>
         public abstract ModuleMetadata GetMetadata();
+
+
 
         #endregion
     }
