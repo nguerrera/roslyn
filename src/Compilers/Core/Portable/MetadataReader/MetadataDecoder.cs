@@ -1774,14 +1774,16 @@ namespace Microsoft.CodeAnalysis
         }
 
         /// <exception cref="BadImageFormatException">An exception from metadata reader.</exception>
-        protected ParamInfo<TypeSymbol>[] DecodeSignatureParametersOrThrow(ref BlobReader signatureReader, SignatureHeader signatureHeader, out int typeParameterCount)
+        protected ParamInfo<TypeSymbol>[] DecodeSignatureParametersOrThrow(ref BlobReader signatureReader, SignatureHeader signatureHeader, out int typeParameterCount, bool isMemberRef = false)
         {
             int paramCount;
             GetSignatureCountsOrThrow(ref signatureReader, signatureHeader, out paramCount, out typeParameterCount);
 
             ParamInfo<TypeSymbol>[] paramInfo = new ParamInfo<TypeSymbol>[paramCount + 1];
 
-            uint paramIndex = 0;
+            int paramIndex = 0;
+
+            bool isVarargMemberRef = isMemberRef && signatureHeader.CallingConvention == SignatureCallingConvention.VarArgs;
 
             try
             {
@@ -1791,11 +1793,25 @@ namespace Microsoft.CodeAnalysis
                 // Get all of the parameters.
                 for (paramIndex = 1; paramIndex <= paramCount; paramIndex++)
                 {
+                    if (isVarargMemberRef)
+                    {
+                        // Don't consume the callsite varargs parameters when resolving a varargs member reference.
+                        BlobReader peek = signatureReader;
+                        if (peek.ReadSignatureTypeCode() == SignatureTypeCode.Sentinel)
+                        {
+                            paramCount = paramIndex;
+                            var trimmed = new ParamInfo<TypeSymbol>[paramCount];
+                            Array.Copy(paramInfo, 0, trimmed, 0, paramCount);
+                            paramInfo = trimmed;
+                            break;
+                        }
+                    }
+
                     // Figure out the type.
                     DecodeParameterOrThrow(ref signatureReader, ref paramInfo[paramIndex]);
                 }
 
-                if (signatureReader.RemainingBytes > 0)
+                if (signatureReader.RemainingBytes > 0 && !isVarargMemberRef)
                 {
                     throw new UnsupportedSignatureContent();
                 }
@@ -2306,8 +2322,15 @@ namespace Microsoft.CodeAnalysis
                 EntityHandle container = Module.GetContainingTypeOrThrow(memberRef);
 
                 HandleKind containerType = container.Kind;
+                
+                if (containerType == HandleKind.MethodDefinition)
+                {
+                    // varargs call to method in same module
+                    container = Module.FindContainingTypeOrThrow((MethodDefinitionHandle)container);
+                    containerType = container.Kind;
+                }
+
                 Debug.Assert(
-                    containerType == HandleKind.MethodDefinition ||
                     containerType == HandleKind.ModuleReference ||
                     containerType == HandleKind.TypeDefinition ||
                     containerType == HandleKind.TypeReference ||
@@ -2316,6 +2339,7 @@ namespace Microsoft.CodeAnalysis
                 if (containerType != HandleKind.TypeDefinition &&
                     containerType != HandleKind.TypeReference &&
                     containerType != HandleKind.TypeSpecification)
+                    
                 {
                     // C# symbols don't support global methods
                     return null;
