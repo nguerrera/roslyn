@@ -483,7 +483,17 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols.Metadata.PE
 
             foreach (Symbol member in typeSymbol.GetMembersUnordered())
             {
-                PEFieldSymbol field = member as PEFieldSymbol;
+                PEFieldSymbol field;
+                PEEventSymbol @event = member as PEEventSymbol;
+                if ((object)@event != null)
+                {
+                    field = (PEFieldSymbol)(@event.AssociatedField);
+                }
+                else
+                {
+                    field = member as PEFieldSymbol;
+                }
+
                 if ((object)field != null && field.Handle == fieldDef)
                 {
                     return field;

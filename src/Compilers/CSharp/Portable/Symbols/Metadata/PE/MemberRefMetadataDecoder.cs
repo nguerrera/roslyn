@@ -176,7 +176,18 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols.Metadata.PE
         {
             foreach (Symbol member in targetTypeSymbol.GetMembers(targetMemberName))
             {
-                var field = member as FieldSymbol;
+                FieldSymbol field;
+                EventSymbol @event = member as EventSymbol;
+
+                if ((object)@event != null)
+                {
+                    field = @event.AssociatedField;
+                }
+                else
+                {
+                    field = member as FieldSymbol;
+                }
+
                 if ((object)field != null &&
                     field.Type == type &&
                     CustomModifiersMatch(field.CustomModifiers, customModifiers))
