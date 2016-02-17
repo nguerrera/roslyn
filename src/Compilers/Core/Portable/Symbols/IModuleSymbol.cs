@@ -47,7 +47,7 @@ namespace Microsoft.CodeAnalysis
         /// </summary>
         ModuleMetadata GetMetadata();
 
-        // TODO: how/where should this really be exposed.
-        ISymbol GetSymbolForMetadataHandle(EntityHandle handle);
+        // TODO: This is a hack: how/where should it really be exposed?
+        ISymbol GetSymbolForMetadataHandle(EntityHandle handle, IMethodSymbol context);
     }
 }

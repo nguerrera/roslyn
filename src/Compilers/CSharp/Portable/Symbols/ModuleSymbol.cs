@@ -364,7 +364,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             }
         }
 
-        public virtual ISymbol GetSymbolForMetadataHandle(EntityHandle handle)
+        public virtual ISymbol GetSymbolForMetadataHandle(EntityHandle handle, IMethodSymbol context)
         {
             return null;
         }
