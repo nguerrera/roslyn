@@ -76,7 +76,9 @@ namespace Microsoft.CodeAnalysis.Diagnostics
             if (location.IsInSource && !compilation.ContainsSyntaxTree(location.SourceTree))
             {
                 // Disallow diagnostics with source locations outside this compilation.
-                throw new ArgumentException(string.Format(CodeAnalysisResources.InvalidDiagnosticLocationReported, id, location.SourceTree.FilePath), "diagnostic");
+
+                // Hack: Disabled to unblock IL analysis prototyping.
+                //throw new ArgumentException(string.Format(CodeAnalysisResources.InvalidDiagnosticLocationReported, id, location.SourceTree.FilePath), "diagnostic");
             }
         }
 
