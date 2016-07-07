@@ -39,6 +39,7 @@ namespace Microsoft.Cci
 
         private readonly Dictionary<DebugSourceDocument, DocumentHandle> _documentIndex = new Dictionary<DebugSourceDocument, DocumentHandle>();
         private readonly Dictionary<IImportScope, ImportScopeHandle> _scopeIndex = new Dictionary<IImportScope, ImportScopeHandle>(ImportScopeEqualityComparer.Instance);
+        private LargeBlobBuildingStream _embeddedSourceBuilder = new LargeBlobBuildingStream();
 
         private void SerializeMethodDebugInfo(IMethodBody bodyOpt, int methodRid, StandaloneSignatureHandle localSignatureHandleOpt, ref LocalVariableHandle lastLocalVariableHandle, ref LocalConstantHandle lastLocalConstantHandle)
         {
@@ -698,15 +699,27 @@ namespace Microsoft.Cci
             DocumentHandle documentHandle;
             if (!index.TryGetValue(document, out documentHandle))
             {
-                var checksumAndAlgorithm = document.ChecksumAndAlgorithm;
+                DebugSourceInfo info = document.GetSourceInfo();
 
                 documentHandle = _debugMetadataOpt.AddDocument(
                     name: SerializeDocumentName(document.Location),
-                    hashAlgorithm: checksumAndAlgorithm.Item1.IsDefault ? default(GuidHandle) : _debugMetadataOpt.GetOrAddGuid(checksumAndAlgorithm.Item2),
-                    hash: (checksumAndAlgorithm.Item1.IsDefault) ? default(BlobHandle) : _debugMetadataOpt.GetOrAddBlob(checksumAndAlgorithm.Item1),
+                    hashAlgorithm: info.Checksum.IsDefault ? default(GuidHandle) : _debugMetadataOpt.GetOrAddGuid(info.AlgorithmId),
+                    hash: info.Checksum.IsDefault ? default(BlobHandle) : _debugMetadataOpt.GetOrAddBlob(info.Checksum),
                     language: _debugMetadataOpt.GetOrAddGuid(document.Language));
 
                 index.Add(document, documentHandle);
+
+                if (info.EmbeddedText != null)
+                {
+                    info.WriteEmbeddedText(_embeddedSourceBuilder);
+
+                    _debugMetadataOpt.AddCustomDebugInformation(
+                        parent: documentHandle,
+                        kind: _debugMetadataOpt.GetOrAddGuid(PortableCustomDebugInfoKinds.EmbeddedSource),
+                        value: _debugMetadataOpt.GetOrAddBlob(_embeddedSourceBuilder.ToImmutableArray()));
+
+                    _embeddedSourceBuilder.Clear(); // don't wait for next write to free excess memory.
+                }
             }
 
             return documentHandle;

@@ -510,6 +510,18 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Return ERRID.ERR_EncUpdateFailedMissingAttribute
             End Get
         End Property
+
+        Public Overrides ReadOnly Property WRN_EmbeddingSpecificFilesAndAllFilesInPdb As Integer
+            Get
+                Return ERRID.WRN_EmbeddingSpecificFilesAndAllFilesInPdb
+            End Get
+        End Property
+
+        Public Overrides ReadOnly Property ERR_NoCorrespondingFileToEmbedInPdb As Integer
+            Get
+                Return ERRID.ERR_NoCorrespondingFileToEmbedInPdb
+            End Get
+        End Property
     End Class
 
 End Namespace

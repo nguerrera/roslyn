@@ -136,6 +136,16 @@ namespace Microsoft.CodeAnalysis
         /// </summary>
         public ImmutableArray<CommandLineSourceFile> AdditionalFiles { get; internal set; }
 
+        /// <summary>
+        /// True to embed all source files in to the PDB
+        /// </summary>
+        public bool EmbedAllSourceFilesInPdb { get; internal set; }
+
+        /// <summary>
+        /// Specific set of source files to embed in PDB when <see cref="EmbedAllSourceFilesInPdb" /> is false.
+        /// </summary>
+        public ImmutableArray<CommandLineSourceFile> SourceFilesToEmbedInPdb { get; internal set; }
+
         /// <value>
         /// Report additional information related to analyzers, such as analyzer execution time.
         /// </value>

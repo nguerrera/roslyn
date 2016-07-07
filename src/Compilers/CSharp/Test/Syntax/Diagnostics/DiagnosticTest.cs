@@ -209,6 +209,7 @@ class X
                             Assert.Equal(1, ErrorFacts.GetWarningLevel(errorCode));
                             break;
                         case ErrorCode.WRN_PdbLocalNameTooLong:
+                        case ErrorCode.WRN_EmbeddingSpecificFilesAndAllFilesInPdb:
                             Assert.Equal(3, ErrorFacts.GetWarningLevel(errorCode));
                             break;
                         case ErrorCode.WRN_AnalyzerCannotBeCreated:

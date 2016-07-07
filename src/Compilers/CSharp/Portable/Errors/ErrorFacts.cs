@@ -180,6 +180,7 @@ namespace Microsoft.CodeAnalysis.CSharp
                 case ErrorCode.WRN_IsDynamicIsConfusing:
                 case ErrorCode.WRN_DebugFullNameTooLong:
                 case ErrorCode.WRN_PdbLocalNameTooLong:
+                case ErrorCode.WRN_EmbeddingSpecificFilesAndAllFilesInPdb:
                     return 3;
                 case ErrorCode.WRN_NewRequired:
                 case ErrorCode.WRN_NewOrOverrideExpected:

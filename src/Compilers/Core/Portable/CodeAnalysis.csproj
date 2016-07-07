@@ -50,8 +50,11 @@
     </Content>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="InternalUtilities\LargeBlobBuildingStream.cs" />
+    <Compile Include="Emit\DebugDocumentPathNormalizer.cs" />
     <Compile Include="GlobalSuppressions.cs" />
     <Compile Include="InternalUtilities\IncrementalHash.cs" />
+    <Compile Include="PEWriter\DebugSourceInfo.cs" />
     <Compile Include="PEWriter\ExportedType.cs" />
   </ItemGroup>
   <ItemGroup>

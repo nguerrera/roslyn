@@ -12,9 +12,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Emit
                sourceModule As SourceModuleSymbol,
                emitOptions As EmitOptions,
                serializationProperties As Cci.ModulePropertiesForSerialization,
-               manifestResources As IEnumerable(Of ResourceDescription))
+               manifestResources As IEnumerable(Of ResourceDescription),
+               debugDocumentPathNormalizer As DebugDocumentPathNormalizer)
 
-            MyBase.New(sourceModule, emitOptions, OutputKind.NetModule, serializationProperties, manifestResources)
+            MyBase.New(sourceModule, emitOptions, OutputKind.NetModule, serializationProperties, manifestResources, debugDocumentPathNormalizer)
         End Sub
 
         Protected Overrides Sub AddEmbeddedResourcesFromAddedModules(builder As ArrayBuilder(Of Cci.ManagedResource), diagnostics As DiagnosticBag)

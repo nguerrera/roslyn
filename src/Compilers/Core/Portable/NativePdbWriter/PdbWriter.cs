@@ -118,7 +118,8 @@ namespace Microsoft.Cci
             DefineKickoffMethod,
             OpenMapTokensToSourceSpans,
             MapTokenToSourceSpan,
-            CloseMapTokensToSourceSpans
+            CloseMapTokensToSourceSpans,
+            SetSource
         }
 
         public bool LogOperation(PdbWriterOperation op)
@@ -236,6 +237,8 @@ namespace Microsoft.Cci
         // in support of determinism
         private readonly bool _deterministic;
         private readonly PdbLogger _callLogger;
+
+        private LargeBlobBuildingStream _embeddedSourceBuilder = new LargeBlobBuildingStream();
 
         public PdbWriter(string fileName, Func<object> symWriterFactory, bool deterministic)
         {
@@ -956,13 +959,13 @@ namespace Microsoft.Cci
 
                 _documentMap.Add(document, writer);
 
-                var checksumAndAlgorithm = document.ChecksumAndAlgorithm;
-                if (!checksumAndAlgorithm.Item1.IsDefault)
+                DebugSourceInfo info = document.GetSourceInfo();
+                if (!info.Checksum.IsDefault)
                 {
                     try
                     {
-                        var algorithmId = checksumAndAlgorithm.Item2;
-                        var checksum = checksumAndAlgorithm.Item1.ToArray();
+                        var algorithmId = info.AlgorithmId;
+                        var checksum = info.Checksum.ToArray();
                         var checksumSize = (uint)checksum.Length;
                         writer.SetCheckSum(algorithmId, checksumSize, checksum);
                         if (_callLogger.LogOperation(OP.SetCheckSum))
@@ -970,6 +973,48 @@ namespace Microsoft.Cci
                             _callLogger.LogArgument(algorithmId.ToByteArray());
                             _callLogger.LogArgument(checksumSize);
                             _callLogger.LogArgument(checksum);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        throw new PdbWritingException(ex);
+                    }
+                }
+
+                if (info.EmbeddedText != null)
+                {
+                    try
+                    {
+                        bool isCompressed;
+                        info.WriteEmbeddedText(_embeddedSourceBuilder, out isCompressed);
+                        ArraySegment<byte> source = _embeddedSourceBuilder.GetBytes();
+                        uint sourceSize = (uint)source.Count;
+
+                        // BlobBuilder does not make blobs with offset != 0.
+                        Debug.Assert(source.Offset == 0);
+
+                        writer.SetSource(sourceSize, source.Array);
+
+                        _embeddedSourceBuilder.Clear(); // don't wait for next write to free excess memory.
+
+                        if (_callLogger.LogOperation(OP.SetSource))
+                        {
+                            _callLogger.LogArgument(sourceSize);
+
+                            // Since we only have embedded text for documents that have a computed checksum,
+                            // (otherwise we'd have raised ERR_EncodinglessSyntaxTree), we can rely on
+                            // having already logged the checksum (cryptographic hash) and skip writing the
+                            // entire embedded text to the log (which can be large).
+                            Debug.Assert(document.IsComputedChecksum);
+                            Debug.Assert(!info.Checksum.IsDefault);
+
+                            // We do, however, log if we compressed the embedded source bytes since that is
+                            // independent from the checksum. (Today it is a fixed function of the input size
+                            // but it could be become a configurable option. If the compression format or
+                            // options change, we'd need to log something more here. We do log the #
+                            // of bytes above, so this is only for disambiguating rare case where compressed
+                            // size == uncompressed size.)
+                            _callLogger.LogArgument((byte)(isCompressed ? 1 : 0));
                         }
                     }
                     catch (Exception ex)

@@ -25,17 +25,19 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Emit
         Private ReadOnly _metadataName As String
 
         Public Sub New(sourceAssembly As SourceAssemblySymbol,
-                       emitOptions As EmitOptions,
-                       outputKind As OutputKind,
-                       serializationProperties As Cci.ModulePropertiesForSerialization,
-                       manifestResources As IEnumerable(Of ResourceDescription),
-                       additionalTypes As ImmutableArray(Of NamedTypeSymbol))
+            emitOptions As EmitOptions,
+            outputKind As OutputKind,
+            serializationProperties As Cci.ModulePropertiesForSerialization,
+            manifestResources As IEnumerable(Of ResourceDescription),
+            debugDocumentPathNormalizer As DebugDocumentPathNormalizer,
+            additionalTypes As ImmutableArray(Of NamedTypeSymbol))
 
             MyBase.New(DirectCast(sourceAssembly.Modules(0), SourceModuleSymbol),
-                       emitOptions,
-                       outputKind,
-                       serializationProperties,
-                       manifestResources)
+                emitOptions,
+                outputKind,
+                serializationProperties,
+                manifestResources,
+                debugDocumentPathNormalizer)
 
             Debug.Assert(sourceAssembly IsNot Nothing)
             Debug.Assert(manifestResources IsNot Nothing)
@@ -168,9 +170,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Emit
                        outputKind As OutputKind,
                        serializationProperties As Cci.ModulePropertiesForSerialization,
                        manifestResources As IEnumerable(Of ResourceDescription),
+                       Optional debugDocumentPathNormalizer As DebugDocumentPathNormalizer = Nothing,
                        Optional additionalTypes As ImmutableArray(Of NamedTypeSymbol) = Nothing)
 
-            MyBase.New(sourceAssembly, emitOptions, outputKind, serializationProperties, manifestResources, additionalTypes)
+            MyBase.New(sourceAssembly, emitOptions, outputKind, serializationProperties, manifestResources, debugDocumentPathNormalizer, additionalTypes)
         End Sub
 
         Friend Overrides ReadOnly Property AllowOmissionOfConditionalCalls As Boolean

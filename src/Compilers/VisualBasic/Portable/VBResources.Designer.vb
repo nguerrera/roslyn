@@ -7846,6 +7846,15 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         End Property
         
         '''<summary>
+        '''  Looks up a localized string similar to Source file &apos;{1}&apos; cannot be embedded in the PDB because it is not part of the compilation..
+        '''</summary>
+        Friend ReadOnly Property ERR_NoCorrespondingFileToEmbedInPdb() As String
+            Get
+                Return ResourceManager.GetString("ERR_NoCorrespondingFileToEmbedInPdb", resourceCulture)
+            End Get
+        End Property
+        
+        '''<summary>
         '''  Looks up a localized string similar to Class &apos;{0}&apos; cannot be indexed because it has no default property..
         '''</summary>
         Friend ReadOnly Property ERR_NoDefaultNotExtend1() As String
@@ -13023,6 +13032,15 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         Friend ReadOnly Property WRN_DuplicateCatch_Title() As String
             Get
                 Return ResourceManager.GetString("WRN_DuplicateCatch_Title", resourceCulture)
+            End Get
+        End Property
+        
+        '''<summary>
+        '''  Looks up a localized string similar to Ignoring specific files to embed in PDB because all files will be embedded..
+        '''</summary>
+        Friend ReadOnly Property WRN_EmbeddingSpecificFilesAndAllFilesInPdb() As String
+            Get
+                Return ResourceManager.GetString("WRN_EmbeddingSpecificFilesAndAllFilesInPdb", resourceCulture)
             End Get
         End Property
         

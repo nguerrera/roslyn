@@ -18,6 +18,7 @@ using Microsoft.DiaSymReader;
 using Roslyn.Utilities;
 
 using PooledStringBuilder = Microsoft.CodeAnalysis.Collections.PooledStringBuilder;
+using System.IO.Compression;
 
 namespace Roslyn.Test.PdbUtilities
 {
@@ -1290,6 +1291,35 @@ namespace Roslyn.Test.PdbUtilities
                     _writer.WriteAttributeString("checkSum", checkSum);
                 }
 
+                if (doc.HasEmbeddedSource())
+                {
+                    bool isCompressed;
+                    string source;
+                    Encoding encoding;
+
+                    using (StreamReader text = GetEmbeddedSource(doc))
+                    {
+                        isCompressed = text.BaseStream is GZipStream;
+                        source = text.ReadToEnd();
+                        encoding = text.CurrentEncoding;
+                    }
+
+                    _writer.WriteStartElement("embeddedSource");
+                    _writer.WriteAttributeString("compressed", isCompressed.ToString());
+                    _writer.WriteAttributeString("encoding", encoding.WebName);
+
+                    // log preamble since the WebName doesn't tell us if a BOM is used or not for UTF-8.
+                    byte[] preambleBytes = encoding.GetPreamble();
+                    if (preambleBytes.Length > 0)
+                    {
+                        string preamble = string.Concat(preambleBytes.Select(b => $"{b,2:X}, "));
+                        _writer.WriteAttributeString("preamble", preamble);
+                    }
+
+                    _writer.WriteValue(source);
+                    _writer.WriteEndElement();
+                }
+                
                 _writer.WriteEndElement();
             }
 
@@ -1297,6 +1327,21 @@ namespace Roslyn.Test.PdbUtilities
             {
                 _writer.WriteEndElement();
             }
+        }
+
+        private static StreamReader GetEmbeddedSource(ISymUnmanagedDocument doc)
+        {
+            byte[] source = doc.GetEmbeddedSource();
+            Stream stream = new MemoryStream(source);
+
+            const byte gzipId0 = 0x1F;
+            const byte gzipId1 = 0x8B;
+            if (source.Length >= 2 && source[0] == gzipId0 && source[1] == gzipId1)
+            {
+                stream = new GZipStream(stream, CompressionMode.Decompress);
+            }
+
+            return new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
         }
 
         private void WriteAllMethodSpans()

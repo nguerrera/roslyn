@@ -19,8 +19,7 @@ namespace Microsoft.Cci
         private readonly string _location;
         private readonly Guid _language;
         private readonly bool _isComputedChecksum;
-
-        private readonly Task<ValueTuple<ImmutableArray<byte>, Guid>> _checksumAndAlgorithm;
+        private readonly Task<DebugSourceInfo> _sourceInfo;
 
         public DebugSourceDocument(string location, Guid language)
         {
@@ -33,10 +32,10 @@ namespace Microsoft.Cci
         /// <summary>
         /// Use to create a document when checksum is computed based on actual source stream.
         /// </summary>
-        public DebugSourceDocument(string location, Guid language, Func<ValueTuple<ImmutableArray<byte>, Guid>> checksumAndAlgorithm)
+        public DebugSourceDocument(string location, Guid language, Func<DebugSourceInfo> sourceInfo)
             : this(location, language)
         {
-            _checksumAndAlgorithm = Task.Run(checksumAndAlgorithm);
+            _sourceInfo = Task.Run(sourceInfo);
             _isComputedChecksum = true;
         }
 
@@ -46,7 +45,7 @@ namespace Microsoft.Cci
         public DebugSourceDocument(string location, Guid language, ImmutableArray<byte> checksum, Guid algorithm)
             : this(location, language)
         {
-            _checksumAndAlgorithm = Task.FromResult(ValueTuple.Create(checksum, algorithm));
+            _sourceInfo = Task.FromResult(new DebugSourceInfo(algorithm, checksum));
         }
 
         internal static bool IsSupportedAlgorithm(SourceHashAlgorithm algorithm)
@@ -100,12 +99,9 @@ namespace Microsoft.Cci
             get { return _location; }
         }
 
-        public ValueTuple<ImmutableArray<byte>, Guid> ChecksumAndAlgorithm
+        public DebugSourceInfo GetSourceInfo()
         {
-            get
-            {
-                return _checksumAndAlgorithm?.Result ?? default(ValueTuple<ImmutableArray<byte>, Guid>);
-            }
+            return _sourceInfo?.Result ?? default(DebugSourceInfo);
         }
 
         /// <summary>

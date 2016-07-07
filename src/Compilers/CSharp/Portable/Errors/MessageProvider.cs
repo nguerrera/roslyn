@@ -140,7 +140,9 @@ namespace Microsoft.CodeAnalysis.CSharp
         public override int INF_UnableToLoadSomeTypesInAnalyzer { get { return (int)ErrorCode.INF_UnableToLoadSomeTypesInAnalyzer; } }
         public override int ERR_CantReadRulesetFile { get { return (int)ErrorCode.ERR_CantReadRulesetFile; } }
         public override int ERR_CompileCancelled { get { return (int)ErrorCode.ERR_CompileCancelled; } }
-
+        public override int WRN_EmbeddingSpecificFilesAndAllFilesInPdb => (int)ErrorCode.WRN_EmbeddingSpecificFilesAndAllFilesInPdb;
+        public override int ERR_NoCorrespondingFileToEmbedInPdb => (int)ErrorCode.ERR_NoCorrespondingFileToEmbedInPdb;
+        
         // compilation options:
         public override int ERR_BadCompilationOptionValue { get { return (int)ErrorCode.ERR_BadCompilationOptionValue; } }
         public override int ERR_MutuallyExclusiveOptions => (int)ErrorCode.ERR_MutuallyExclusiveOptions;

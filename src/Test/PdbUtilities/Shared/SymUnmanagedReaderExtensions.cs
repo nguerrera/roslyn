@@ -106,5 +106,35 @@ namespace Microsoft.DiaSymReader
                 Marshal.ThrowExceptionForHR(hr, s_ignoreIErrorInfo);
             }
         }
+
+        internal static bool HasEmbeddedSource(this ISymUnmanagedDocument document)
+        {
+            bool hasEmbeddedSource;
+            int hr = document.HasEmbeddedSource(out hasEmbeddedSource);
+            ThrowExceptionForHR(hr);
+            return hasEmbeddedSource;
+        }
+
+        internal static int GetEmbeddedSourceLength(this ISymUnmanagedDocument document)
+        {
+            int length;
+            int hr = document.GetSourceLength(out length);
+            ThrowExceptionForHR(hr);
+            return length;
+        }
+
+        internal static byte[] GetEmbeddedSource(this ISymUnmanagedDocument document)
+        {
+            int length = document.GetEmbeddedSourceLength();
+            Debug.Assert(length > 0 == document.HasEmbeddedSource());
+
+            var bytes = new byte[length];
+            int count;
+            int hr = document.GetSourceRange(0, 0, int.MaxValue, int.MaxValue, length, out count, bytes);
+            ThrowExceptionForHR(hr);
+
+            Debug.Assert(count == length);
+            return bytes;
+        }
     }
 }

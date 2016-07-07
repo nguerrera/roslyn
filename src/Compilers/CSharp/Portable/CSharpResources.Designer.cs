@@ -6434,6 +6434,15 @@ namespace Microsoft.CodeAnalysis.CSharp {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Source file &apos;{1}&apos; cannot be embedded in the PDB because it is not part of the compilation..
+        /// </summary>
+        internal static string ERR_NoCorrespondingFileToEmbedInPdb {
+            get {
+                return ResourceManager.GetString("ERR_NoCorrespondingFileToEmbedInPdb", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to The call to method &apos;{0}&apos; needs to be dynamically dispatched, but cannot be because it is part of a base access expression. Consider casting the dynamic arguments or eliminating the base access..
         /// </summary>
         internal static string ERR_NoDynamicPhantomOnBase {
@@ -12029,6 +12038,15 @@ namespace Microsoft.CodeAnalysis.CSharp {
         internal static string WRN_DynamicDispatchToConditionalMethod_Title {
             get {
                 return ResourceManager.GetString("WRN_DynamicDispatchToConditionalMethod_Title", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Ignoring specific files to embed in PDB because all files will be embedded..
+        /// </summary>
+        internal static string WRN_EmbeddingSpecificFilesAndAllFilesInPdb {
+            get {
+                return ResourceManager.GetString("WRN_EmbeddingSpecificFilesAndAllFilesInPdb", resourceCulture);
             }
         }
         

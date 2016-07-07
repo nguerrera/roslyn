@@ -47,6 +47,7 @@ namespace Microsoft.CodeAnalysis.Test.Utilities
                 manifestResources: null,
                 options: options,
                 debugEntryPoint: debugEntryPoint,
+                embedSourceInPdb: null,
                 testData: testData,
                 cancellationToken: default(CancellationToken));
 

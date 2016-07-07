@@ -399,5 +399,21 @@ namespace Roslyn.Test.Utilities
                 throw new NotImplementedException();
             }
         }
+
+        public override int WRN_EmbeddingSpecificFilesAndAllFilesInPdb
+        {
+            get
+            {
+                throw new NotImplementedException();
+            }
+        }
+
+        public override int ERR_NoCorrespondingFileToEmbedInPdb
+        {
+            get
+            {
+                throw new NotImplementedException();
+            }
+        }
     }
 }

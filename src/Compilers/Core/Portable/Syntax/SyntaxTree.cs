@@ -313,11 +313,19 @@ namespace Microsoft.CodeAnalysis
         /// this tree.</remarks>
         public abstract IList<TextChange> GetChanges(SyntaxTree oldTree);
 
-        internal ValueTuple<ImmutableArray<byte>, Guid> GetChecksumAndAlgorithm()
+        /// <summary>
+        /// Gets the checksum + algorithm id and embedded source bytes to use in the PDB.
+        /// </summary>
+        /// <param name="embedSource">
+        /// Indicates whether to embed the source bytes in the PDB.
+        /// </param>
+        internal Cci.DebugSourceInfo GetDebugSourceInfo(bool embedSource)
         {
+            SourceText text = null;
+
             if (_lazyChecksum.IsDefault)
             {
-                var text = this.GetText();
+                text = GetText();
                 _lazyChecksum = text.GetChecksum();
                 _lazyHashAlgorithm = text.ChecksumAlgorithm;
             }
@@ -329,7 +337,7 @@ namespace Microsoft.CodeAnalysis
                 throw ExceptionUtilities.Unreachable;
             }
 
-            return ValueTuple.Create(_lazyChecksum, guid);
+            return new Cci.DebugSourceInfo(guid, _lazyChecksum, embedSource ? (text ?? GetText()) : null);
         }
 
         /// <summary>

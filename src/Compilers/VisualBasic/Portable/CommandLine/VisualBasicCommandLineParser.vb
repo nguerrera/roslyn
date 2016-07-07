@@ -151,6 +151,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Dim reportAnalyzer As Boolean = False
             Dim publicSign As Boolean = False
             Dim interactiveMode As Boolean = False
+            Dim filesToEmbedInPdb As List(Of CommandLineSourceFile) = New List(Of CommandLineSourceFile)
+            Dim embedAllFilesInPdb As Boolean = False
 
             ' Process ruleset files first so that diagnostic severity settings specified on the command line via
             ' /nowarn and /warnaserror can override diagnostic severity settings specified in the ruleset file.
@@ -1122,6 +1124,15 @@ lVbRuntimePlus:
 
                             additionalFiles.AddRange(ParseAdditionalFileArgument(value, baseDirectory, diagnostics))
                             Continue For
+
+                        Case "embedsourceinpdb"
+                            If String.IsNullOrEmpty(value) Then
+                                embedAllFilesInPdb = True
+                                Continue For
+                            End If
+                            filesToEmbedInPdb.AddRange(ParseAdditionalFileArgument(value, baseDirectory, diagnostics))
+                            Continue For
+
                     End Select
                 End If
 
@@ -1334,7 +1345,9 @@ lVbRuntimePlus:
                 .EmitPdb = emitPdb,
                 .DefaultCoreLibraryReference = defaultCoreLibraryReference,
                 .PreferredUILang = preferredUILang,
-                .ReportAnalyzer = reportAnalyzer
+                .ReportAnalyzer = reportAnalyzer,
+                .EmbedAllSourceFilesInPdb = embedAllFilesInPdb,
+                .SourceFilesToEmbedInPdb = filesToEmbedInPdb.AsImmutable()
             }
         End Function
 

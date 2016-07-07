@@ -30,11 +30,12 @@ namespace Microsoft.CodeAnalysis.Test.Utilities
             string expectedPdb,
             IMethodSymbol debugEntryPoint = null,
             DebugInformationFormat format = 0,
+            Func<SyntaxTree, bool> embedSourceInPdb = null,
             PdbToXmlOptions options = 0,
             [CallerLineNumber]int expectedValueSourceLine = 0,
             [CallerFilePath]string expectedValueSourcePath = null)
         {
-            VerifyPdb(compilation, "", expectedPdb, debugEntryPoint, format, options, expectedValueSourceLine, expectedValueSourcePath);
+            VerifyPdb(compilation, "", expectedPdb, debugEntryPoint, format, embedSourceInPdb, options, expectedValueSourceLine, expectedValueSourcePath);
         }
 
         internal static void VerifyPdb(
@@ -43,6 +44,7 @@ namespace Microsoft.CodeAnalysis.Test.Utilities
             string expectedPdb,
             IMethodSymbol debugEntryPoint = null,
             DebugInformationFormat format = 0,
+            Func<SyntaxTree, bool> embedSourceInPdb = null,
             PdbToXmlOptions options = 0,
             [CallerLineNumber]int expectedValueSourceLine = 0,
             [CallerFilePath]string expectedValueSourcePath = null)
@@ -55,6 +57,7 @@ namespace Microsoft.CodeAnalysis.Test.Utilities
                 qualifiedMethodName,
                 expectedPdbXml,
                 format,
+                embedSourceInPdb,
                 options,
                 expectedValueSourceLine,
                 expectedValueSourcePath,
@@ -66,11 +69,12 @@ namespace Microsoft.CodeAnalysis.Test.Utilities
             XElement expectedPdb,
             IMethodSymbol debugEntryPoint = null,
             DebugInformationFormat format = 0,
+            Func<SyntaxTree, bool> embedSourceInPdb = null,
             PdbToXmlOptions options = 0,
             [CallerLineNumber]int expectedValueSourceLine = 0,
             [CallerFilePath]string expectedValueSourcePath = null)
         {
-            VerifyPdb(compilation, "", expectedPdb, debugEntryPoint, format, options, expectedValueSourceLine, expectedValueSourcePath);
+            VerifyPdb(compilation, "", expectedPdb, debugEntryPoint, format, embedSourceInPdb, options, expectedValueSourceLine, expectedValueSourcePath);
         }
 
         internal static void VerifyPdb(
@@ -79,6 +83,7 @@ namespace Microsoft.CodeAnalysis.Test.Utilities
             XElement expectedPdb,
             IMethodSymbol debugEntryPoint = null,
             DebugInformationFormat format = 0,
+            Func<SyntaxTree, bool> embedSourceInPdb = null,
             PdbToXmlOptions options = 0,
             [CallerLineNumber]int expectedValueSourceLine = 0,
             [CallerFilePath]string expectedValueSourcePath = null)
@@ -89,6 +94,7 @@ namespace Microsoft.CodeAnalysis.Test.Utilities
                 qualifiedMethodName,
                 expectedPdb,
                 format,
+                embedSourceInPdb,
                 options,
                 expectedValueSourceLine,
                 expectedValueSourcePath,
@@ -101,6 +107,7 @@ namespace Microsoft.CodeAnalysis.Test.Utilities
             string qualifiedMethodName,
             XElement expectedPdb,
             DebugInformationFormat format,
+            Func<SyntaxTree, bool> embedSourceInPdb,
             PdbToXmlOptions options,
             int expectedValueSourceLine,
             string expectedValueSourcePath,
@@ -110,13 +117,13 @@ namespace Microsoft.CodeAnalysis.Test.Utilities
 
             if (format == 0 || format == DebugInformationFormat.Pdb)
             {
-                XElement actualNativePdb = XElement.Parse(GetPdbXml(compilation, debugEntryPoint, options, qualifiedMethodName, portable: false));
+                XElement actualNativePdb = XElement.Parse(GetPdbXml(compilation, debugEntryPoint, embedSourceInPdb, options, qualifiedMethodName, portable: false));
                 AssertXml.Equal(expectedPdb, actualNativePdb, expectedValueSourcePath, expectedValueSourceLine, expectedIsXmlLiteral);
             }
 
             if (format == 0 || format == DebugInformationFormat.PortablePdb)
             {
-                XElement actualPortablePdb = XElement.Parse(GetPdbXml(compilation, debugEntryPoint, options, qualifiedMethodName, portable: true));
+                XElement actualPortablePdb = XElement.Parse(GetPdbXml(compilation, debugEntryPoint, embedSourceInPdb, options, qualifiedMethodName, portable: true));
 
                 // SymWriter doesn't create empty scopes. When the C# compiler uses forwarding CDI instead of a NamespaceScope
                 // the scope is actually not empty - it logically contains the imports. Portable PDB does not used forwarding and thus
@@ -224,6 +231,7 @@ namespace Microsoft.CodeAnalysis.Test.Utilities
         internal static string GetPdbXml(
             Compilation compilation,
             IMethodSymbol debugEntryPoint = null,
+            Func<SyntaxTree, bool> embedSourceInPdb = null,
             PdbToXmlOptions options = 0,
             string qualifiedMethodName = "",
             bool portable = false)
@@ -237,7 +245,8 @@ namespace Microsoft.CodeAnalysis.Test.Utilities
                         exebits,
                         pdbbits,
                         debugEntryPoint: debugEntryPoint,
-                        options: EmitOptions.Default.WithDebugInformationFormat(portable ? DebugInformationFormat.PortablePdb : DebugInformationFormat.Pdb));
+                        options: EmitOptions.Default.WithDebugInformationFormat(portable ? DebugInformationFormat.PortablePdb : DebugInformationFormat.Pdb),
+                        embedSourceInPdb: embedSourceInPdb);
 
                     result.Diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error).Verify();
 
@@ -459,5 +468,27 @@ namespace Microsoft.CodeAnalysis.Test.Utilities
                 }
             }
         }
+
+        public static string PruneEmbeddedSource(string xml, params SyntaxTree[] treesToEmbed)
+        {
+            var root = XElement.Parse(xml);
+            bool prunedSomething = false;
+
+            foreach (var file in root.Descendants().Where(n => n.Name == "file"))
+            {
+                var embeddedSource = file.Elements().SingleOrDefault(n => n.Name == "embeddedSource");
+                Assert.True(embeddedSource != null, "There should be an expected embeddedSource expectation for every file.");
+
+                if (!treesToEmbed.Any(t => t.FilePath == file.Attribute("name").Value))
+                {
+                    embeddedSource.Remove();
+                    prunedSomething = true;
+                }
+            }
+
+            Assert.True(prunedSomething, "Nothing was pruned.");
+            return root.ToString();
+        }
+
     }
 }

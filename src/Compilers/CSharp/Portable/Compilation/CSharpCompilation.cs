@@ -2221,6 +2221,8 @@ namespace Microsoft.CodeAnalysis.CSharp
         internal override CommonPEModuleBuilder CreateModuleBuilder(
             EmitOptions emitOptions,
             IMethodSymbol debugEntryPoint,
+            DebugDocumentPathNormalizer debugDocumentPathNormalizer,
+            Func<SyntaxTree, bool> embedSourceInPdb,
             IEnumerable<ResourceDescription> manifestResources,
             CompilationTestData testData,
             DiagnosticBag diagnostics,
@@ -2248,7 +2250,8 @@ namespace Microsoft.CodeAnalysis.CSharp
                     (SourceModuleSymbol)SourceModule,
                     emitOptions,
                     moduleProps,
-                    manifestResources);
+                    manifestResources,
+                    debugDocumentPathNormalizer);
             }
             else
             {
@@ -2258,8 +2261,11 @@ namespace Microsoft.CodeAnalysis.CSharp
                     emitOptions,
                     kind,
                     moduleProps,
-                    manifestResources);
+                    manifestResources,
+                    debugDocumentPathNormalizer);
             }
+
+            moduleBeingBuilt.EmbedSourceInPdbFilter = embedSourceInPdb;
 
             if (debugEntryPoint != null)
             {
@@ -2411,7 +2417,7 @@ namespace Microsoft.CodeAnalysis.CSharp
                     var existingDoc = moduleBeingBuilt.TryGetDebugDocumentForNormalizedPath(normalizedPath);
                     if (existingDoc == null)
                     {
-                        moduleBeingBuilt.AddDebugDocument(MakeDebugSourceDocumentForTree(normalizedPath, tree));
+                        moduleBeingBuilt.AddDebugDocument(MakeDebugSourceDocumentForTree(normalizedPath, tree, moduleBeingBuilt.EmbedSourceInPdb(tree)));
                     }
                 }
             }
@@ -2537,11 +2543,11 @@ namespace Microsoft.CodeAnalysis.CSharp
                         continue;
                     }
 
-                    var checksumAndAlgorithm = existingDoc.ChecksumAndAlgorithm;
-                    if (ChecksumMatches(checksumText, checksumAndAlgorithm.Item1))
+                    var sourceInfo = existingDoc.GetSourceInfo();
+                    if (ChecksumMatches(checksumText, sourceInfo.Checksum))
                     {
                         var guid = Guid.Parse(checksumDirective.Guid.ValueText);
-                        if (guid == checksumAndAlgorithm.Item2)
+                        if (guid == sourceInfo.AlgorithmId)
                         {
                             // all parts match, nothing to do
                             continue;
@@ -2604,9 +2610,9 @@ namespace Microsoft.CodeAnalysis.CSharp
             return builder.ToImmutableAndFree();
         }
 
-        private static Cci.DebugSourceDocument MakeDebugSourceDocumentForTree(string normalizedPath, SyntaxTree tree)
+        private static Cci.DebugSourceDocument MakeDebugSourceDocumentForTree(string normalizedPath, SyntaxTree tree, bool embedSourceInPdb)
         {
-            return new Cci.DebugSourceDocument(normalizedPath, Cci.DebugSourceDocument.CorSymLanguageTypeCSharp, () => tree.GetChecksumAndAlgorithm());
+            return new Cci.DebugSourceDocument(normalizedPath, Cci.DebugSourceDocument.CorSymLanguageTypeCSharp, () => tree.GetDebugSourceInfo(embedSourceInPdb));
         }
 
         private void SetupWin32Resources(PEModuleBuilder moduleBeingBuilt, Stream win32Resources, DiagnosticBag diagnostics)

@@ -114,6 +114,8 @@ namespace Microsoft.CodeAnalysis.CSharp
             bool optionsEnded = false;
             bool interactiveMode = false;
             bool publicSign = false;
+            bool embedAllFilesInPdb = false;
+            List<CommandLineSourceFile> filesToEmbedInPdb = new List<CommandLineSourceFile>();
 
             // Process ruleset files first so that diagnostic severity settings specified on the command line via
             // /nowarn and /warnaserror can override diagnostic severity settings specified in the ruleset file.
@@ -1072,6 +1074,16 @@ namespace Microsoft.CodeAnalysis.CSharp
 
                             additionalFiles.AddRange(ParseAdditionalFileArgument(value, baseDirectory, diagnostics));
                             continue;
+
+                        case "embedsourceinpdb":
+                            if (string.IsNullOrEmpty(value))
+                            {
+                                embedAllFilesInPdb = true;
+                                continue;
+                            }
+
+                           filesToEmbedInPdb.AddRange(ParseAdditionalFileArgument(value, baseDirectory, diagnostics));
+                           continue;
                     }
                 }
 
@@ -1236,7 +1248,9 @@ namespace Microsoft.CodeAnalysis.CSharp
                 PrintFullPaths = printFullPaths,
                 ShouldIncludeErrorEndLocation = errorEndLocation,
                 PreferredUILang = preferredUILang,
-                ReportAnalyzer = reportAnalyzer
+                ReportAnalyzer = reportAnalyzer,
+                EmbedAllSourceFilesInPdb = embedAllFilesInPdb,
+                SourceFilesToEmbedInPdb = filesToEmbedInPdb.AsImmutable(),
             };
         }
 
