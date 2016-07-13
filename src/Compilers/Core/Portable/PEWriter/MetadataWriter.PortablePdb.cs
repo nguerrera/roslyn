@@ -711,7 +711,7 @@ namespace Microsoft.Cci
 
                 if (info.EmbeddedText != null)
                 {
-                    info.WriteEmbeddedText(_embeddedSourceBuilder);
+                    info.WriteEmbeddedText(_embeddedSourceBuilder, writeFormatCode: true);
 
                     _debugMetadataOpt.AddCustomDebugInformation(
                         parent: documentHandle,

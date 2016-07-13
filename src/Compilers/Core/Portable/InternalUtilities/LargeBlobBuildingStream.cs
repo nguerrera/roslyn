@@ -70,6 +70,12 @@ namespace Roslyn.Utilities
             _builder.WriteByte(value);
         }
 
+        public void WriteUInt16(ushort value)
+        {
+            LazyAllocateBuilder();
+            _builder.WriteUInt16(value);
+        }
+
         public ImmutableArray<byte> ToImmutableArray()
         {
             return _builder?.ToImmutableArray() ?? ImmutableArray<byte>.Empty;

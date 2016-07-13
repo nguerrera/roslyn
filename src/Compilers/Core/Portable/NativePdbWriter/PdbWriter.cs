@@ -149,6 +149,12 @@ namespace Microsoft.Cci
             _logData.WriteUTF8(data, allowUnpairedSurrogates: true);
         }
 
+        public void LogArgument(ushort data)
+        {
+            EnsureSpace(2);
+            _logData.WriteUInt16(data);
+        }
+
         public void LogArgument(uint data)
         {
             EnsureSpace(4);
@@ -985,8 +991,7 @@ namespace Microsoft.Cci
                 {
                     try
                     {
-                        bool isCompressed;
-                        info.WriteEmbeddedText(_embeddedSourceBuilder, out isCompressed);
+                        ushort format = info.WriteEmbeddedText(_embeddedSourceBuilder, writeFormatCode: false);
                         ArraySegment<byte> source = _embeddedSourceBuilder.GetBytes();
                         uint sourceSize = (uint)source.Count;
 
@@ -1008,13 +1013,8 @@ namespace Microsoft.Cci
                             Debug.Assert(document.IsComputedChecksum);
                             Debug.Assert(!info.Checksum.IsDefault);
 
-                            // We do, however, log if we compressed the embedded source bytes since that is
-                            // independent from the checksum. (Today it is a fixed function of the input size
-                            // but it could be become a configurable option. If the compression format or
-                            // options change, we'd need to log something more here. We do log the #
-                            // of bytes above, so this is only for disambiguating rare case where compressed
-                            // size == uncompressed size.)
-                            _callLogger.LogArgument((byte)(isCompressed ? 1 : 0));
+                            // We log the format (compressed or not) since it is independent of the checksum.
+                            _callLogger.LogArgument(format);
                         }
                     }
                     catch (Exception ex)

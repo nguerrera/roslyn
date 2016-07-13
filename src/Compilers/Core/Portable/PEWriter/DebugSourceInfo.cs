@@ -49,33 +49,37 @@ namespace Microsoft.Cci
             EmbeddedText = embeddedText?.Length > 0 ? embeddedText : null;
         }
 
-        public void WriteEmbeddedText(LargeBlobBuildingStream blobBuilder)
+        public ushort WriteEmbeddedText(LargeBlobBuildingStream blobBuilder, bool writeFormatCode)
         {
-            bool ignoredIsCompressed;
-            WriteEmbeddedText(blobBuilder, out ignoredIsCompressed);
-        }
+            const ushort RawFormat = 0;
+            const ushort GzipFormat = 1;
 
-        public void WriteEmbeddedText(LargeBlobBuildingStream blobBuilder, out bool isCompressed)
-        {
             Debug.Assert(blobBuilder != null);
             Debug.Assert(EmbeddedText != null); // Don't call unless EmbeddedText is non-null.
             Debug.Assert(EmbeddedText.Length > 0); // Should have been dropped in constructor
             Debug.Assert(EmbeddedText.Encoding != null); // We should have raised ERR_EncodinglessSyntaxTree.
 
             Stream target = blobBuilder;
-            isCompressed = false;
+            ushort format = EmbeddedText.Length > CompressionThreshold ? GzipFormat : RawFormat;
+
             blobBuilder.Clear();
 
-            if (EmbeddedText.Length > CompressionThreshold)
+            if (writeFormatCode)
+            {
+                blobBuilder.WriteUInt16(format);
+            }
+
+            if (format == GzipFormat)
             {
                 target = new GZipStream(target, CompressionLevel.Optimal);
-                isCompressed = true;
             }
 
             using (var writer = new StreamWriter(target, EmbeddedText.Encoding))
             {
                 EmbeddedText.Write(writer);
             }
+
+            return format;
         }
     }
 }
