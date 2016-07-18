@@ -5019,7 +5019,7 @@
 
                                   - INPUT FILES -
 /addmodule:&lt;file_list&gt;            Reference metadata from the specified modules
-/link:&lt;file_list&gt;                 Embed metadata from the specified interop 
+/link:&lt;file_list&gt;                 Embed metadata from the specified interop
                                   assembly. (Short form: /l)
 /recurse:&lt;wildcard&gt;               Include all files in the current directory 
                                   and subdirectories according to the
@@ -5031,6 +5031,8 @@
 /additionalfile:&lt;file list&gt;       Additional files that don't directly affect code
                                   generation but may be used by analyzers for producing
                                   errors or warnings.
+/embed:&lt;file_list&gt;                Add source files to compilation and embed them
+                                  in PDB.
 
                                   - RESOURCES -
 /linkresource:&lt;resinfo&gt;           Links the specified file as an external 
@@ -5058,8 +5060,7 @@
 /debug:pdbonly                    Emit PDB file only.
 /deterministic                    Produce a deterministic assembly
                                   (including module version GUID and timestamp)
-/embedsourceinpdb                 Embed all source files in PDB
-/embedsourceinpdb:&lt;file_list&gt;     Embed specific files in PDB
+
 
                                   - ERRORS AND WARNINGS -
 /nowarn                           Disable all warnings.

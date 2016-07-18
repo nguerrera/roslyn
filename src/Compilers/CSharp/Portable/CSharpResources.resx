@@ -4395,6 +4395,8 @@ To remove the warning, you can use /reference instead (set the Embed Interop Typ
  /additionalfile:&lt;file list&gt;   Additional files that don't directly affect code
                                generation but may be used by analyzers for producing
                                errors or warnings.
+ /embed:&lt;file_list&gt;            Add source files to compilation and embed them 
+                               in PDB
 
                         - RESOURCES -
  /win32res:&lt;file&gt;              Specify a Win32 resource file (.res)
@@ -4415,8 +4417,6 @@ To remove the warning, you can use /reference instead (set the Embed Interop Typ
  /optimize[+|-]                Enable optimizations (Short form: /o)
  /deterministic                Produce a deterministic assembly
                                (including module version GUID and timestamp)
- /embedsourceinpdb             Embed all source files in PDB
- /embedsourceinpdb:&lt;file_list&gt; Embed specific files in PDB
 
                         - ERRORS AND WARNINGS -
  /warnaserror[+|-]             Report all warnings as errors
