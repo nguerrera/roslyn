@@ -113,8 +113,6 @@ namespace Microsoft.CodeAnalysis.CSharp
             bool optionsEnded = false;
             bool interactiveMode = false;
             bool publicSign = false;
-            bool embedAllFilesInPdb = false;
-            List<CommandLineSourceFile> filesToEmbedInPdb = new List<CommandLineSourceFile>();
 
             // Process ruleset files first so that diagnostic severity settings specified on the command line via
             // /nowarn and /warnaserror can override diagnostic severity settings specified in the ruleset file.
