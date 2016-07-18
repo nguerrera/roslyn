@@ -17,7 +17,7 @@ namespace Microsoft.Cci
     internal struct DebugSourceInfo
     {
         /// <summary>
-        /// The maximum number of characters in <see cref="EmbeddedText"/> to write out uncompressed.
+        /// The maximum number of characters in <see cref="EmbeddedTextOpt"/> to write out uncompressed.
         /// This prevents wasting resources on compressing tiny files with little to negative gain
         /// in PDB file size.
         ///
@@ -40,13 +40,13 @@ namespace Microsoft.Cci
         /// <summary>
         /// The source text to embed in the PDB. (If any, otherwise null.)
         /// </summary>
-        public readonly SourceText EmbeddedText;
+        public readonly SourceText EmbeddedTextOpt;
 
-        public DebugSourceInfo(Guid checksumAlgorithmId, ImmutableArray<byte> checksum, SourceText embeddedText = null)
+        public DebugSourceInfo(Guid checksumAlgorithmId, ImmutableArray<byte> checksum, SourceText embeddedTextOpt = null)
         {
             Checksum = checksum;
             AlgorithmId = checksumAlgorithmId;
-            EmbeddedText = embeddedText?.Length > 0 ? embeddedText : null;
+            EmbeddedTextOpt = embeddedTextOpt?.Length > 0 ? embeddedTextOpt : null;
         }
 
         public ushort WriteEmbeddedText(LargeBlobBuildingStream blobBuilder, bool writeFormatCode)
@@ -55,12 +55,12 @@ namespace Microsoft.Cci
             const ushort GzipFormat = 1;
 
             Debug.Assert(blobBuilder != null);
-            Debug.Assert(EmbeddedText != null); // Don't call unless EmbeddedText is non-null.
-            Debug.Assert(EmbeddedText.Length > 0); // Should have been dropped in constructor
-            Debug.Assert(EmbeddedText.Encoding != null); // We should have raised ERR_EncodinglessSyntaxTree.
+            Debug.Assert(EmbeddedTextOpt != null); // Don't call unless EmbeddedText is non-null.
+            Debug.Assert(EmbeddedTextOpt.Length > 0); // Should have been dropped in constructor
+            Debug.Assert(EmbeddedTextOpt.Encoding != null); // We should have raised ERR_EncodinglessSyntaxTree.
 
             Stream target = blobBuilder;
-            ushort format = EmbeddedText.Length > CompressionThreshold ? GzipFormat : RawFormat;
+            ushort format = EmbeddedTextOpt.Length > CompressionThreshold ? GzipFormat : RawFormat;
 
             blobBuilder.Clear();
 
@@ -74,9 +74,9 @@ namespace Microsoft.Cci
                 target = new GZipStream(target, CompressionLevel.Optimal);
             }
 
-            using (var writer = new StreamWriter(target, EmbeddedText.Encoding))
+            using (var writer = new StreamWriter(target, EmbeddedTextOpt.Encoding))
             {
-                EmbeddedText.Write(writer);
+                EmbeddedTextOpt.Write(writer);
             }
 
             return format;

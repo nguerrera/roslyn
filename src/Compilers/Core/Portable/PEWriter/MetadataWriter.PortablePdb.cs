@@ -709,7 +709,7 @@ namespace Microsoft.Cci
 
                 index.Add(document, documentHandle);
 
-                if (info.EmbeddedText != null)
+                if (info.EmbeddedTextOpt != null)
                 {
                     info.WriteEmbeddedText(_embeddedSourceBuilder, writeFormatCode: true);
 

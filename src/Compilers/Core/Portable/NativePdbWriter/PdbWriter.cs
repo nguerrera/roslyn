@@ -987,7 +987,7 @@ namespace Microsoft.Cci
                     }
                 }
 
-                if (info.EmbeddedText != null)
+                if (info.EmbeddedTextOpt != null)
                 {
                     try
                     {
