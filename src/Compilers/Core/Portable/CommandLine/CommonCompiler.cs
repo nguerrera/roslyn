@@ -33,7 +33,7 @@ namespace Microsoft.CodeAnalysis
         public abstract DiagnosticFormatter DiagnosticFormatter { get; }
         private readonly HashSet<Diagnostic> _reportedDiagnostics = new HashSet<Diagnostic>();
 
-        public abstract Compilation CreateCompilation(TextWriter consoleOutput, TouchedFileLogger touchedFilesLogger, ErrorLogger errorLoggerOpt);
+        public abstract Compilation CreateCompilation(TextWriter consoleOutput, TouchedFileLogger touchedFilesLogger, ErrorLogger errorLoggerOpt, ConcurrentSet<SyntaxTree> syntaxTreesToEmbed);
         public abstract void PrintLogo(TextWriter consoleOutput);
         public abstract void PrintHelp(TextWriter consoleOutput);
         internal abstract string GetToolName();
@@ -352,8 +352,9 @@ namespace Microsoft.CodeAnalysis
             }
 
             var touchedFilesLogger = (Arguments.TouchedFilesPath != null) ? new TouchedFileLogger() : null;
+            var treesToEmbedInPdb = new ConcurrentSet<SyntaxTree>();
 
-            Compilation compilation = CreateCompilation(consoleOutput, touchedFilesLogger, errorLogger);
+            Compilation compilation = CreateCompilation(consoleOutput, touchedFilesLogger, errorLogger, treesToEmbedInPdb);
             if (compilation == null)
             {
                 return Failed;
@@ -399,19 +400,9 @@ namespace Microsoft.CodeAnalysis
                     return Failed;
                 }
 
-                var debugDocumentPathNormalizer = DebugDocumentPathNormalizer.Create();
-                ImmutableArray<DiagnosticInfo> embedSourceInPdbDiagnostics;
-                Func<SyntaxTree, bool> embedSourceInPdb = GetEmbedSourceInPdbFilter(
-                    compilation.Options.SourceReferenceResolver,
-                    debugDocumentPathNormalizer, 
-                    compilation.SyntaxTrees,
-                    out embedSourceInPdbDiagnostics
-                    );
-
-                if (ReportErrors(embedSourceInPdbDiagnostics, consoleOutput, errorLogger))
-                {
-                    return Failed;
-                }
+                var embedSourceInPdb = treesToEmbedInPdb.Count == 0 
+                    ? (Func<SyntaxTree, bool>)null 
+                    : treesToEmbedInPdb.Contains;
 
                 cancellationToken.ThrowIfCancellationRequested();
 
@@ -446,7 +437,6 @@ namespace Microsoft.CodeAnalysis
                         diagnosticBag,
                         Arguments.ManifestResources,
                         emitOptions,
-                        debugDocumentPathNormalizer,
                         embedSourceInPdb,
                         debugEntryPoint: null,
                         testData: null,
@@ -930,84 +920,6 @@ namespace Microsoft.CodeAnalysis
             }
 
             return builder.ToString();
-        }
-
-        private Func<SyntaxTree, bool> GetEmbedSourceInPdbFilter(
-            SourceReferenceResolver resolver,
-            DebugDocumentPathNormalizer normalizer, 
-            IEnumerable<SyntaxTree> syntaxTrees,
-            out ImmutableArray<DiagnosticInfo> diagnostics)
-        {
-            diagnostics = ImmutableArray<DiagnosticInfo>.Empty;
-            if (!Arguments.EmbedAllSourceFilesInPdb && Arguments.SourceFilesToEmbedInPdb.IsEmpty)
-            {
-                return null; // common case: same as tree => false without dispatch overhead.
-            }
-
-            HashSet<SyntaxTree> embedSet = null;
-            if (!Arguments.SourceFilesToEmbedInPdb.IsEmpty)
-            {
-                // Note that we do this even if Arguments.EmbedAllSourceFilesInPdb is true so that we 
-                // get an error diagnostics for any specific file that is not in the compilation. We
-                // will also warn if both embed all and any specific file are passed.
-                embedSet = GetSyntaxTreesToEmbedInPdb(resolver, normalizer, syntaxTrees, out diagnostics);
-            }
-
-            if (Arguments.EmbedAllSourceFilesInPdb)
-            {
-                return t => true;
-            }
-
-            Debug.Assert(embedSet != null && !Arguments.SourceFilesToEmbedInPdb.IsEmpty && !Arguments.EmbedAllSourceFilesInPdb);
-            return embedSet.Contains;
-        }
-
-        private HashSet<SyntaxTree> GetSyntaxTreesToEmbedInPdb(
-            SourceReferenceResolver resolver, 
-            DebugDocumentPathNormalizer normalizer,
-            IEnumerable<SyntaxTree> syntaxTrees,
-            out ImmutableArray<DiagnosticInfo> diagnostics)
-        {
-            var diagnosticBuilder = ArrayBuilder<DiagnosticInfo>.GetInstance();
-
-            var treesByNormalizedPath = new MultiDictionary<string, SyntaxTree>(StringComparer.OrdinalIgnoreCase);
-            foreach (var tree in syntaxTrees)
-            {
-                string path = normalizer.Normalize(resolver, tree.FilePath, basePath: null);
-                treesByNormalizedPath.Add(path, tree);
-            }
-
-            var embedSet = new HashSet<SyntaxTree>();
-            foreach (var file in Arguments.SourceFilesToEmbedInPdb)
-            {
-                string path = normalizer.Normalize(resolver, file.Path, basePath: null);
-                var trees = treesByNormalizedPath[path];
-                if (trees.Count == 0)
-                {
-                    var diagnostic = new DiagnosticInfo(MessageProvider, MessageProvider.ERR_NoCorrespondingFileToEmbedInPdb, file.Path);
-                    diagnosticBuilder.Add(diagnostic);
-                    continue;
-                }
-
-                // Note that trees.Count > 0 is a corner case: if we somehow manage to have more
-                // than one tree with same normalized path ignoring case, we'll simply embed them
-                // all if any /embedsourceinpdb arg matches them. 
-                //
-                // e.g. on case-sensitive file system: `csc file.cs FILE.cs /embedsourceinpdb:File.cs`
-                // implies both file.cs and FILE.cs will be embedded. Definining the behavior this way
-                // is deemed less surprising than forcing the casing to match between source file args 
-                // and embed args.
-                embedSet.AddAll(trees);
-            }
-
-            if (Arguments.EmbedAllSourceFilesInPdb)
-            {
-                var diagnostic = new DiagnosticInfo(MessageProvider, MessageProvider.WRN_EmbeddingSpecificFilesAndAllFilesInPdb);
-                diagnosticBuilder.Add(diagnostic);
-            }
-
-            diagnostics = diagnosticBuilder.ToImmutableAndFree();
-            return embedSet;
         }
     }
 }

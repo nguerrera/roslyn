@@ -85,7 +85,6 @@ namespace Microsoft.CodeAnalysis.CSharp
             List<ResourceDescription> managedResources = new List<ResourceDescription>();
             List<CommandLineSourceFile> sourceFiles = new List<CommandLineSourceFile>();
             List<CommandLineSourceFile> additionalFiles = new List<CommandLineSourceFile>();
-            bool sourceFilesSpecified = false;
             bool resourcesOrModulesSpecified = false;
             Encoding codepage = null;
             var checksumAlgorithm = SourceHashAlgorithm.Sha1;
@@ -147,12 +146,7 @@ namespace Microsoft.CodeAnalysis.CSharp
                 string name, value;
                 if (optionsEnded || !TryParseOption(arg, out name, out value))
                 {
-                    sourceFiles.AddRange(ParseFileArgument(arg, baseDirectory, diagnostics));
-                    if (sourceFiles.Count > 0)
-                    {
-                        sourceFilesSpecified = true;
-                    }
-
+                    sourceFiles.AddRange(ParseFileArgument(arg, baseDirectory, diagnostics, embedInPdb: false));
                     continue;
                 }
 
@@ -439,12 +433,7 @@ namespace Microsoft.CodeAnalysis.CSharp
                             }
                             else
                             {
-                                int before = sourceFiles.Count;
                                 sourceFiles.AddRange(ParseRecurseArgument(value, baseDirectory, diagnostics));
-                                if (sourceFiles.Count > before)
-                                {
-                                    sourceFilesSpecified = true;
-                                }
                             }
                             continue;
 
@@ -1072,18 +1061,19 @@ namespace Microsoft.CodeAnalysis.CSharp
                                 continue;
                             }
 
-                            additionalFiles.AddRange(ParseAdditionalFileArgument(value, baseDirectory, diagnostics));
+                            additionalFiles.AddRange(ParseSeparatedFileArgument(value, baseDirectory, diagnostics, embedInPdb: false));
                             continue;
 
-                        case "embedsourceinpdb":
+                        case "embed":
                             if (string.IsNullOrEmpty(value))
                             {
-                                embedAllFilesInPdb = true;
+                                AddDiagnostic(diagnostics, ErrorCode.ERR_SwitchNeedsString, "<file list>", name);
                                 continue;
                             }
 
-                           filesToEmbedInPdb.AddRange(ParseAdditionalFileArgument(value, baseDirectory, diagnostics));
+                           sourceFiles.AddRange(ParseSeparatedFileArgument(value, baseDirectory, diagnostics, embedInPdb: true));
                            continue;
+
                     }
                 }
 
@@ -1101,7 +1091,7 @@ namespace Microsoft.CodeAnalysis.CSharp
                 diagnosticOptions[o.Key] = o.Value;
             }
 
-            if (!IsScriptRunner && !sourceFilesSpecified && (outputKind.IsNetModule() || !resourcesOrModulesSpecified))
+            if (!IsScriptRunner && sourceFiles.Count == 0 && (outputKind.IsNetModule() || !resourcesOrModulesSpecified))
             {
                 AddDiagnostic(diagnostics, diagnosticOptions, ErrorCode.WRN_NoSources);
             }
@@ -1147,7 +1137,7 @@ namespace Microsoft.CodeAnalysis.CSharp
             var parsedFeatures = CompilerOptionParseUtilities.ParseFeatures(features);
 
             string compilationName;
-            GetCompilationAndModuleNames(diagnostics, outputKind, sourceFiles, sourceFilesSpecified, moduleAssemblyName, ref outputFileName, ref moduleName, out compilationName);
+            GetCompilationAndModuleNames(diagnostics, outputKind, sourceFiles, moduleAssemblyName, ref outputFileName, ref moduleName, out compilationName);
 
             var parseOptions = new CSharpParseOptions
             (
@@ -1249,8 +1239,6 @@ namespace Microsoft.CodeAnalysis.CSharp
                 ShouldIncludeErrorEndLocation = errorEndLocation,
                 PreferredUILang = preferredUILang,
                 ReportAnalyzer = reportAnalyzer,
-                EmbedAllSourceFilesInPdb = embedAllFilesInPdb,
-                SourceFilesToEmbedInPdb = filesToEmbedInPdb.AsImmutable(),
             };
         }
 
@@ -1307,7 +1295,6 @@ namespace Microsoft.CodeAnalysis.CSharp
             List<Diagnostic> diagnostics,
             OutputKind outputKind,
             List<CommandLineSourceFile> sourceFiles,
-            bool sourceFilesSpecified,
             string moduleAssemblyName,
             ref string outputFileName,
             ref string moduleName,
@@ -1320,7 +1307,7 @@ namespace Microsoft.CodeAnalysis.CSharp
                 // names from the files containing their entrypoints and libraries derive their names from 
                 // their first input files.
 
-                if (!IsScriptRunner && !sourceFilesSpecified)
+                if (!IsScriptRunner && sourceFiles.Count == 0)
                 {
                     AddDiagnostic(diagnostics, ErrorCode.ERR_OutputNeedsName);
                     simpleName = null;

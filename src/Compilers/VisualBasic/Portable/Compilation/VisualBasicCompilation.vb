@@ -2110,7 +2110,6 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         Friend Overrides Function CreateModuleBuilder(
             emitOptions As EmitOptions,
             debugEntryPoint As IMethodSymbol,
-            debugDocumentPathNormalizer As DebugDocumentPathNormalizer,
             embedSourceInPdb As Func(Of SyntaxTree, Boolean),
             manifestResources As IEnumerable(Of ResourceDescription),
             testData As CompilationTestData,
@@ -2120,7 +2119,6 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Return CreateModuleBuilder(
                 emitOptions,
                 debugEntryPoint,
-                debugDocumentPathNormalizer,
                 embedSourceInPdb,
                 manifestResources,
                 testData,
@@ -2132,7 +2130,6 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         Friend Overloads Function CreateModuleBuilder(
             emitOptions As EmitOptions,
             debugEntryPoint As IMethodSymbol,
-            debugDocumentPathNormalizer As DebugDocumentPathNormalizer,
             embedSourceInPdb As Func(Of SyntaxTree, Boolean),
             manifestResources As IEnumerable(Of ResourceDescription),
             testData As CompilationTestData,
@@ -2160,8 +2157,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     DirectCast(Me.SourceModule, SourceModuleSymbol),
                     emitOptions,
                     moduleSerializationProperties,
-                    manifestResources,
-                    debugDocumentPathNormalizer)
+                    manifestResources)
             Else
                 Dim kind = If(Options.OutputKind.IsValid(), Options.OutputKind, OutputKind.DynamicallyLinkedLibrary)
                 moduleBeingBuilt = New PEAssemblyBuilder(
@@ -2170,7 +2166,6 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                         kind,
                         moduleSerializationProperties,
                         manifestResources,
-                        debugDocumentPathNormalizer,
                         additionalTypes)
             End If
 

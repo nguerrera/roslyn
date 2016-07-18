@@ -50,7 +50,7 @@ namespace Microsoft.CodeAnalysis.Emit
         private readonly OutputKind _outputKind;
         private readonly EmitOptions _emitOptions;
         private readonly Cci.ModulePropertiesForSerialization _serializationProperties;
-        private readonly DebugDocumentPathNormalizer _debugDocumentPathNormalizer;
+        private readonly ConcurrentCache<ValueTuple<string, string>, string> _normalizedPathsCache = new ConcurrentCache<ValueTuple<string, string>, string>(16);
 
         private readonly TokenMap<Cci.IReference> _referencesInILMap = new TokenMap<Cci.IReference>();
         private readonly StringTokenMap _stringsInILMap = new StringTokenMap();
@@ -115,8 +115,7 @@ namespace Microsoft.CodeAnalysis.Emit
             IEnumerable<ResourceDescription> manifestResources,
             OutputKind outputKind,
             EmitOptions emitOptions,
-            TModuleCompilationState compilationState,
-            DebugDocumentPathNormalizer debugDocumentPathNormalizer)
+            TModuleCompilationState compilationState)
         {
             Debug.Assert(sourceModule != null);
             Debug.Assert(serializationProperties != null);
@@ -128,12 +127,6 @@ namespace Microsoft.CodeAnalysis.Emit
             _outputKind = outputKind;
             _emitOptions = emitOptions;
             this.CompilationState = compilationState;
-
-            _debugDocumentPathNormalizer = debugDocumentPathNormalizer.IsDefault ? 
-                DebugDocumentPathNormalizer.Create() :
-                debugDocumentPathNormalizer;
-
-            // REVIEW: Existing issue: but why is this based on language sensitivity and not file system?
             _debugDocuments = new ConcurrentDictionary<string, Cci.DebugSourceDocument>(
                 compilation.IsCaseSensitive ?
                 StringComparer.Ordinal :
@@ -940,7 +933,21 @@ namespace Microsoft.CodeAnalysis.Emit
 
         internal string NormalizeDebugDocumentPath(string path, string basePath)
         {
-            return _debugDocumentPathNormalizer.Normalize(_compilation.Options.SourceReferenceResolver, path, basePath);
+            var resolver = _compilation.Options.SourceReferenceResolver;
+            if (resolver == null)
+            {
+                return path;
+            }
+
+            var key = ValueTuple.Create(path, basePath);
+            string normalizedPath;
+            if (!_normalizedPathsCache.TryGetValue(key, out normalizedPath))
+            {
+                normalizedPath = resolver.NormalizePath(path, basePath) ?? path;
+                _normalizedPathsCache.TryAdd(key, normalizedPath);
+            }
+
+            return normalizedPath;
         }
         #endregion
     }

@@ -1451,7 +1451,6 @@ namespace Microsoft.CodeAnalysis
         internal abstract CommonPEModuleBuilder CreateModuleBuilder(
             EmitOptions emitOptions,
             IMethodSymbol debugEntryPoint,
-            DebugDocumentPathNormalizer debugDocumentPathNormalizer,
             Func<SyntaxTree, bool> embedSourceInPdb,
             IEnumerable<ResourceDescription> manifestResources,
             CompilationTestData testData,
@@ -1534,7 +1533,6 @@ namespace Microsoft.CodeAnalysis
                     var moduleBeingBuilt = this.CreateModuleBuilder(
                         emitOptions: EmitOptions.Default,
                         debugEntryPoint: null,
-                        debugDocumentPathNormalizer: DebugDocumentPathNormalizer.Create(),
                         embedSourceInPdb: null,
                         manifestResources: null,
                         testData: null,
@@ -1702,7 +1700,6 @@ namespace Microsoft.CodeAnalysis
                 diagnostics,
                 manifestResources,
                 options,
-                DebugDocumentPathNormalizer.Create(),
                 embedSourceInPdb,
                 debugEntryPoint,
                 testData,
@@ -1851,7 +1848,6 @@ namespace Microsoft.CodeAnalysis
             DiagnosticBag diagnostics,
             IEnumerable<ResourceDescription> manifestResources,
             EmitOptions options,
-            DebugDocumentPathNormalizer debugDocumentPathNormalizer,
             Func<SyntaxTree, bool> embedSourceInPdb,
             IMethodSymbol debugEntryPoint,
             CompilationTestData testData,
@@ -1900,7 +1896,6 @@ namespace Microsoft.CodeAnalysis
             return this.CreateModuleBuilder(
                 options,
                 debugEntryPoint,
-                debugDocumentPathNormalizer,
                 embedSourceInPdb,
                 manifestResources,
                 testData,

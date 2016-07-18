@@ -2221,7 +2221,6 @@ namespace Microsoft.CodeAnalysis.CSharp
         internal override CommonPEModuleBuilder CreateModuleBuilder(
             EmitOptions emitOptions,
             IMethodSymbol debugEntryPoint,
-            DebugDocumentPathNormalizer debugDocumentPathNormalizer,
             Func<SyntaxTree, bool> embedSourceInPdb,
             IEnumerable<ResourceDescription> manifestResources,
             CompilationTestData testData,
@@ -2250,8 +2249,7 @@ namespace Microsoft.CodeAnalysis.CSharp
                     (SourceModuleSymbol)SourceModule,
                     emitOptions,
                     moduleProps,
-                    manifestResources,
-                    debugDocumentPathNormalizer);
+                    manifestResources);
             }
             else
             {
@@ -2261,8 +2259,7 @@ namespace Microsoft.CodeAnalysis.CSharp
                     emitOptions,
                     kind,
                     moduleProps,
-                    manifestResources,
-                    debugDocumentPathNormalizer);
+                    manifestResources);
             }
 
             moduleBeingBuilt.EmbedSourceInPdbFilter = embedSourceInPdb;

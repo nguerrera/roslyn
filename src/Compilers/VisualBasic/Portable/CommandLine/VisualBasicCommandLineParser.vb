@@ -151,8 +151,6 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Dim reportAnalyzer As Boolean = False
             Dim publicSign As Boolean = False
             Dim interactiveMode As Boolean = False
-            Dim filesToEmbedInPdb As List(Of CommandLineSourceFile) = New List(Of CommandLineSourceFile)
-            Dim embedAllFilesInPdb As Boolean = False
 
             ' Process ruleset files first so that diagnostic severity settings specified on the command line via
             ' /nowarn and /warnaserror can override diagnostic severity settings specified in the ruleset file.
@@ -178,7 +176,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Dim name As String = Nothing
                 Dim value As String = Nothing
                 If Not TryParseOption(arg, name, value) Then
-                    sourceFiles.AddRange(ParseFileArgument(arg, baseDirectory, diagnostics))
+                    sourceFiles.AddRange(ParseFileArgument(arg, baseDirectory, diagnostics, embedInPdb:=False))
                     hasSourceFiles = True
                     Continue For
                 End If
@@ -1116,21 +1114,27 @@ lVbRuntimePlus:
                             Continue For
 
                         Case "additionalfile"
-                            value = RemoveQuotesAndSlashes(value)
                             If String.IsNullOrEmpty(value) Then
                                 AddDiagnostic(diagnostics, ERRID.ERR_ArgumentRequired, name, ":<file_list>")
                                 Continue For
                             End If
 
-                            additionalFiles.AddRange(ParseAdditionalFileArgument(value, baseDirectory, diagnostics))
+                            additionalFiles.AddRange(ParseSeparatedFileArgument(value, baseDirectory, diagnostics, embedInPdb:=False))
                             Continue For
 
-                        Case "embedsourceinpdb"
+                        Case "embed"
                             If String.IsNullOrEmpty(value) Then
-                                embedAllFilesInPdb = True
+                                AddDiagnostic(diagnostics, ERRID.ERR_ArgumentRequired, name, ":<file_list>")
                                 Continue For
                             End If
-                            filesToEmbedInPdb.AddRange(ParseAdditionalFileArgument(value, baseDirectory, diagnostics))
+                            sourceFiles.AddRange(ParseSeparatedFileArgument(value, baseDirectory, diagnostics, embedInPdb:=True))
+
+                        Case "embedadditionalfile"
+                            If String.IsNullOrEmpty(value) Then
+                                AddDiagnostic(diagnostics, ERRID.ERR_ArgumentRequired, name, ":<file_list>")
+                                Continue For
+                            End If
+                            additionalFiles.AddRange(ParseSeparatedFileArgument(value, baseDirectory, diagnostics, embedInPdb:=True))
                             Continue For
 
                     End Select
@@ -1345,9 +1349,7 @@ lVbRuntimePlus:
                 .EmitPdb = emitPdb,
                 .DefaultCoreLibraryReference = defaultCoreLibraryReference,
                 .PreferredUILang = preferredUILang,
-                .ReportAnalyzer = reportAnalyzer,
-                .EmbedAllSourceFilesInPdb = embedAllFilesInPdb,
-                .SourceFilesToEmbedInPdb = filesToEmbedInPdb.AsImmutable()
+                .ReportAnalyzer = reportAnalyzer
             }
         End Function
 

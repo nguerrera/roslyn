@@ -14,9 +14,8 @@ namespace Microsoft.CodeAnalysis.CSharp.Emit
             SourceModuleSymbol sourceModule,
             EmitOptions emitOptions,
             Cci.ModulePropertiesForSerialization serializationProperties,
-            IEnumerable<ResourceDescription> manifestResources,
-            DebugDocumentPathNormalizer debugDocumentPathNormalizer = default(DebugDocumentPathNormalizer))
-            : base(sourceModule, emitOptions, OutputKind.NetModule, serializationProperties, manifestResources, debugDocumentPathNormalizer)
+            IEnumerable<ResourceDescription> manifestResources)
+            : base(sourceModule, emitOptions, OutputKind.NetModule, serializationProperties, manifestResources)
         {
         }
 

@@ -152,8 +152,6 @@ namespace Microsoft.CodeAnalysis
         public abstract int WRN_NoAnalyzerInAssembly { get; }
         public abstract int ERR_CantReadRulesetFile { get; }
         public abstract int ERR_CompileCancelled { get; }
-        public abstract int WRN_EmbeddingSpecificFilesAndAllFilesInPdb { get; }
-        public abstract int ERR_NoCorrespondingFileToEmbedInPdb { get; }
 
         // compilation options:
         public abstract int ERR_BadCompilationOptionValue { get; }

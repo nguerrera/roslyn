@@ -29,7 +29,7 @@ namespace Microsoft.CodeAnalysis.CSharp
         public override DiagnosticFormatter DiagnosticFormatter { get { return _diagnosticFormatter; } }
         protected internal new CSharpCommandLineArguments Arguments { get { return (CSharpCommandLineArguments)base.Arguments; } }
 
-        public override Compilation CreateCompilation(TextWriter consoleOutput, TouchedFileLogger touchedFilesLogger, ErrorLogger errorLogger)
+        public override Compilation CreateCompilation(TextWriter consoleOutput, TouchedFileLogger touchedFilesLogger, ErrorLogger errorLogger, ConcurrentSet<SyntaxTree> treesToEmbedInPdb)
         {
             var parseOptions = Arguments.ParseOptions;
 
@@ -48,7 +48,7 @@ namespace Microsoft.CodeAnalysis.CSharp
                 Parallel.For(0, sourceFiles.Length, UICultureUtilities.WithCurrentUICulture<int>(i =>
                 {
                     //NOTE: order of trees is important!!
-                    trees[i] = ParseFile(consoleOutput, parseOptions, scriptParseOptions, ref hadErrors, sourceFiles[i], errorLogger, out normalizedFilePaths[i]);
+                    trees[i] = ParseFile(consoleOutput, parseOptions, scriptParseOptions, ref hadErrors, sourceFiles[i], errorLogger, treesToEmbedInPdb, out normalizedFilePaths[i]);
                 }));
             }
             else
@@ -56,7 +56,7 @@ namespace Microsoft.CodeAnalysis.CSharp
                 for (int i = 0; i < sourceFiles.Length; i++)
                 {
                     //NOTE: order of trees is important!!
-                    trees[i] = ParseFile(consoleOutput, parseOptions, scriptParseOptions, ref hadErrors, sourceFiles[i], errorLogger, out normalizedFilePaths[i]);
+                    trees[i] = ParseFile(consoleOutput, parseOptions, scriptParseOptions, ref hadErrors, sourceFiles[i], errorLogger, treesToEmbedInPdb, out normalizedFilePaths[i]);
                 }
             }
 
@@ -81,6 +81,7 @@ namespace Microsoft.CodeAnalysis.CSharp
                     diagnostics.Add(new DiagnosticInfo(MessageProvider, (int)ErrorCode.WRN_FileAlreadyIncluded,
                         Arguments.PrintFullPaths ? normalizedFilePath : _diagnosticFormatter.RelativizeNormalizedPath(normalizedFilePath)));
 
+                    treesToEmbedInPdb.Remove(trees[i]);
                     trees[i] = null;
                 }
             }
@@ -148,6 +149,7 @@ namespace Microsoft.CodeAnalysis.CSharp
             ref bool hadErrors,
             CommandLineSourceFile file,
             ErrorLogger errorLogger,
+            ConcurrentSet<SyntaxTree> treesToEmbedInPdb,
             out string normalizedFilePath)
         {
             var fileReadDiagnostics = new List<DiagnosticInfo>();
@@ -162,7 +164,7 @@ namespace Microsoft.CodeAnalysis.CSharp
             }
             else
             {
-                return ParseFile(parseOptions, scriptParseOptions, content, file);
+                return ParseFile(parseOptions, scriptParseOptions, content, file, treesToEmbedInPdb);
             }
         }
 
@@ -170,7 +172,8 @@ namespace Microsoft.CodeAnalysis.CSharp
             CSharpParseOptions parseOptions,
             CSharpParseOptions scriptParseOptions,
             SourceText content,
-            CommandLineSourceFile file)
+            CommandLineSourceFile file,
+            ConcurrentSet<SyntaxTree> treesToEmbedInPdb)
         {
             var tree = SyntaxFactory.ParseSyntaxTree(
                 content,
@@ -182,6 +185,11 @@ namespace Microsoft.CodeAnalysis.CSharp
             // where things run sequentially.
             bool isHiddenDummy;
             tree.GetMappedLineSpanAndVisibility(default(TextSpan), out isHiddenDummy);
+
+            if (file.EmbedInPdb)
+            {
+                treesToEmbedInPdb.Add(tree);
+            }
 
             return tree;
         }

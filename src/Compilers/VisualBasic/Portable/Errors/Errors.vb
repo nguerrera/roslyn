@@ -68,8 +68,6 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ERR_MissingGuidForOption = 2044
         ERR_BadChecksumAlgorithm = 2045
         ERR_MutuallyExclusiveOptions = 2046
-        WRN_EmbeddingSpecificFilesAndAllFilesInPdb = 2047
-        ERR_NoCorrespondingFileToEmbedInPdb = 2048
 
         '// The naming convention is that if your error requires arguments, to append
         '// the number of args taken, e.g. AmbiguousName2

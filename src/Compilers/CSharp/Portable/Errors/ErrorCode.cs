@@ -1242,11 +1242,6 @@ namespace Microsoft.CodeAnalysis.CSharp
 
         // huge gap here; available 7103-8000
 
-        WRN_EmbeddingSpecificFilesAndAllFilesInPdb = 7103,
-        ERR_NoCorrespondingFileToEmbedInPdb = 7104,
-
-        // available 7105-8000
-        
         #region more diagnostics introduced in Roslyn (C# 6)
 
         WRN_UnimplementedCommandLineSwitch = 8001,

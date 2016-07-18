@@ -45,16 +45,14 @@ namespace Microsoft.CodeAnalysis.CSharp.Emit
             EmitOptions emitOptions,
             OutputKind outputKind,
             Cci.ModulePropertiesForSerialization serializationProperties,
-            IEnumerable<ResourceDescription> manifestResources,
-            DebugDocumentPathNormalizer debugDocumentPathNormalizer)
+            IEnumerable<ResourceDescription> manifestResources)
             : base(sourceModule.ContainingSourceAssembly.DeclaringCompilation,
                    sourceModule,
                    serializationProperties,
                    manifestResources,
                    outputKind,
                    emitOptions,
-                   new ModuleCompilationState(),
-                   debugDocumentPathNormalizer)
+                   new ModuleCompilationState())
         {
             var specifiedName = sourceModule.MetadataName;
 

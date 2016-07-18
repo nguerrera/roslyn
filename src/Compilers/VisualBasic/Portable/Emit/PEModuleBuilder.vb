@@ -29,8 +29,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Emit
                        emitOptions As EmitOptions,
                        outputKind As OutputKind,
                        serializationProperties As Cci.ModulePropertiesForSerialization,
-                       manifestResources As IEnumerable(Of ResourceDescription),
-                       debugDocumentPathNormalizer As DebugDocumentPathNormalizer)
+                       manifestResources As IEnumerable(Of ResourceDescription))
 
             MyBase.New(sourceModule.ContainingSourceAssembly.DeclaringCompilation,
                        sourceModule,
@@ -38,8 +37,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Emit
                        manifestResources,
                        outputKind,
                        emitOptions,
-                       New ModuleCompilationState(),
-                       debugDocumentPathNormalizer)
+                       New ModuleCompilationState())
 
             Dim specifiedName = sourceModule.MetadataName
 

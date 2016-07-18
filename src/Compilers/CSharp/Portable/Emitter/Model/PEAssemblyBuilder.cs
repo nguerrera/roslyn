@@ -42,9 +42,8 @@ namespace Microsoft.CodeAnalysis.CSharp.Emit
             OutputKind outputKind,
             Cci.ModulePropertiesForSerialization serializationProperties,
             IEnumerable<ResourceDescription> manifestResources,
-            DebugDocumentPathNormalizer debugDocumentPathNormalizer,
             ImmutableArray<NamedTypeSymbol> additionalTypes)
-            : base((SourceModuleSymbol)sourceAssembly.Modules[0], emitOptions, outputKind, serializationProperties, manifestResources, debugDocumentPathNormalizer)
+            : base((SourceModuleSymbol)sourceAssembly.Modules[0], emitOptions, outputKind, serializationProperties, manifestResources)
         {
             Debug.Assert((object)sourceAssembly != null);
 
@@ -188,9 +187,8 @@ namespace Microsoft.CodeAnalysis.CSharp.Emit
             EmitOptions emitOptions,
             OutputKind outputKind,
             Cci.ModulePropertiesForSerialization serializationProperties,
-            IEnumerable<ResourceDescription> manifestResources,
-            DebugDocumentPathNormalizer debugDocumentPathNormalizer = default(DebugDocumentPathNormalizer))
-            : base(sourceAssembly, emitOptions, outputKind, serializationProperties, manifestResources, debugDocumentPathNormalizer, ImmutableArray<NamedTypeSymbol>.Empty)
+            IEnumerable<ResourceDescription> manifestResources)
+            : base(sourceAssembly, emitOptions, outputKind, serializationProperties, manifestResources, ImmutableArray<NamedTypeSymbol>.Empty)
         {
         }
 

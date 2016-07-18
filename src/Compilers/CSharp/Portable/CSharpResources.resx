@@ -4919,13 +4919,4 @@ To remove the warning, you can use /reference instead (set the Embed Interop Typ
   <data name="ERR_ExplicitTupleElementNames" xml:space="preserve">
     <value>Cannot reference 'System.Runtime.CompilerServices.TupleElementNamesAttribute' explicitly. Use the tuple syntax to define tuple names.</value>
   </data>
-  <data name="ERR_NoCorrespondingFileToEmbedInPdb" xml:space="preserve">
-    <value>Source file '{0}' cannot be embedded in the PDB because it is not part of the compilation.</value>
-  </data>
-  <data name="WRN_EmbeddingSpecificFilesAndAllFilesInPdb" xml:space="preserve">
-    <value>Ignoring specific files to embed in PDB because all files will be embedded.</value>
-  </data>
-  <data name="WRN_EmbeddingSpecificFilesAndAllFilesInPdb_Title" xml:space="preserve">
-    <value>Ignoring specific files to embed in PDB because all files will be embedded.</value>
-  </data>
 </root>

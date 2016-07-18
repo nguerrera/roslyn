@@ -5369,13 +5369,4 @@
   <data name="ERR_OptionMustBeAbsolutePath" xml:space="preserve">
     <value>Option '{0}' must be an absolute path.</value>
   </data>
-  <data name="ERR_NoCorrespondingFileToEmbedInPdb" xml:space="preserve">
-    <value>Source file '{0}' cannot be embedded in the PDB because it is not part of the compilation.</value>
-  </data>
-  <data name="WRN_EmbeddingSpecificFilesAndAllFilesInPdb" xml:space="preserve">
-    <value>Ignoring specific files to embed in PDB because all files will be embedded.</value>
-  </data>
-  <data name="WRN_EmbeddingSpecificFilesAndAllFilesInPdb_Title" xml:space="preserve">
-    <value>Ignoring specific files to embed in PDB because all files will be embedded.</value>
-  </data>
 </root>

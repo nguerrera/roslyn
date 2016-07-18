@@ -34,7 +34,6 @@ namespace Microsoft.CodeAnalysis.CSharp.ExpressionEvaluator
                   outputKind: OutputKind.DynamicallyLinkedLibrary,
                   serializationProperties: serializationProperties,
                   manifestResources: SpecializedCollections.EmptyEnumerable<ResourceDescription>(),
-                  debugDocumentPathNormalizer: default(DebugDocumentPathNormalizer),
                   additionalTypes: additionalTypes)
         {
             Methods = ImmutableHashSet.CreateRange(methods);

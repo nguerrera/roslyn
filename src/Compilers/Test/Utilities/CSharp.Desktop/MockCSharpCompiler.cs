@@ -6,6 +6,7 @@ using System.Collections.Immutable;
 using System.IO;
 using System.Runtime.InteropServices;
 using Microsoft.CodeAnalysis.Diagnostics;
+using Roslyn.Utilities;
 
 namespace Microsoft.CodeAnalysis.CSharp.Test.Utilities
 {
@@ -37,9 +38,9 @@ namespace Microsoft.CodeAnalysis.CSharp.Test.Utilities
             return analyzers;
         }
 
-        public override Compilation CreateCompilation(TextWriter consoleOutput, TouchedFileLogger touchedFilesLogger, ErrorLogger errorLogger)
+        public override Compilation CreateCompilation(TextWriter consoleOutput, TouchedFileLogger touchedFilesLogger, ErrorLogger errorLogger, ConcurrentSet<SyntaxTree> treesToEmbedInPdb)
         {
-            Compilation = base.CreateCompilation(consoleOutput, touchedFilesLogger, errorLogger);
+            Compilation = base.CreateCompilation(consoleOutput, touchedFilesLogger, errorLogger, treesToEmbedInPdb);
             return Compilation;
         }
     }
