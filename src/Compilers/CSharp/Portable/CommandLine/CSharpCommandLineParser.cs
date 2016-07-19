@@ -1236,7 +1236,7 @@ namespace Microsoft.CodeAnalysis.CSharp
                 PrintFullPaths = printFullPaths,
                 ShouldIncludeErrorEndLocation = errorEndLocation,
                 PreferredUILang = preferredUILang,
-                ReportAnalyzer = reportAnalyzer,
+                ReportAnalyzer = reportAnalyzer
             };
         }
 

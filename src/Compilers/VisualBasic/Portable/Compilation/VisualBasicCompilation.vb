@@ -2445,10 +2445,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         End Function
 
         Private Shared Function MakeDebugSourceDocumentForTree(normalizedPath As String, tree As SyntaxTree, embedSourceInPdb As Boolean) As DebugSourceDocument
-            Return New DebugSourceDocument(
-                normalizedPath,
-                DebugSourceDocument.CorSymLanguageTypeBasic,
-                Function() tree.GetDebugSourceInfo(embedSourceInPdb))
+            Return New DebugSourceDocument(normalizedPath, DebugSourceDocument.CorSymLanguageTypeBasic, Function() tree.GetDebugSourceInfo(embedSourceInPdb))
         End Function
 
         Private Sub SetupWin32Resources(moduleBeingBuilt As PEModuleBuilder, win32Resources As Stream, diagnostics As DiagnosticBag)

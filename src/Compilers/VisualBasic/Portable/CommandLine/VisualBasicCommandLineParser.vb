@@ -1128,15 +1128,6 @@ lVbRuntimePlus:
                                 Continue For
                             End If
                             sourceFiles.AddRange(ParseSeparatedFileArgument(value, baseDirectory, diagnostics, embedInPdb:=True))
-
-                        Case "embedadditionalfile"
-                            If String.IsNullOrEmpty(value) Then
-                                AddDiagnostic(diagnostics, ERRID.ERR_ArgumentRequired, name, ":<file_list>")
-                                Continue For
-                            End If
-                            additionalFiles.AddRange(ParseSeparatedFileArgument(value, baseDirectory, diagnostics, embedInPdb:=True))
-                            Continue For
-
                     End Select
                 End If
 

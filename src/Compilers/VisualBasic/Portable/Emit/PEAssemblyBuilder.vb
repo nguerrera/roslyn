@@ -25,17 +25,17 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Emit
         Private ReadOnly _metadataName As String
 
         Public Sub New(sourceAssembly As SourceAssemblySymbol,
-            emitOptions As EmitOptions,
-            outputKind As OutputKind,
-            serializationProperties As Cci.ModulePropertiesForSerialization,
-            manifestResources As IEnumerable(Of ResourceDescription),
-            additionalTypes As ImmutableArray(Of NamedTypeSymbol))
+                       emitOptions As EmitOptions,
+                       outputKind As OutputKind,
+                       serializationProperties As Cci.ModulePropertiesForSerialization,
+                       manifestResources As IEnumerable(Of ResourceDescription),
+                       additionalTypes As ImmutableArray(Of NamedTypeSymbol))
 
             MyBase.New(DirectCast(sourceAssembly.Modules(0), SourceModuleSymbol),
-                emitOptions,
-                outputKind,
-                serializationProperties,
-                manifestResources)
+                       emitOptions,
+                       outputKind,
+                       serializationProperties,
+                       manifestResources)
 
             Debug.Assert(sourceAssembly IsNot Nothing)
             Debug.Assert(manifestResources IsNot Nothing)

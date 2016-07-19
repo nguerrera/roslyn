@@ -77,7 +77,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                code <> ERRID.WRN_NoConfigInResponseFile AndAlso
                code <> ERRID.WRN_IgnoreModuleManifest Then
                 Return 1
-            ElseIf ErrorFacts.IsInfo(errorId) OrElse ErrorFacts.IsHidden(errorId) Then
+            ElseIf ErrorFacts.IsInfo(errorId) OrElse ErrorFacts.IsHidden(errorId)
                 ' Info and hidden diagnostics
                 Return 1
             Else
@@ -510,7 +510,6 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Return ERRID.ERR_EncUpdateFailedMissingAttribute
             End Get
         End Property
-
     End Class
 
 End Namespace

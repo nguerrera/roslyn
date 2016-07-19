@@ -5019,7 +5019,7 @@
 
                                   - INPUT FILES -
 /addmodule:&lt;file_list&gt;            Reference metadata from the specified modules
-/link:&lt;file_list&gt;                 Embed metadata from the specified interop
+/link:&lt;file_list&gt;                 Embed metadata from the specified interop 
                                   assembly. (Short form: /l)
 /recurse:&lt;wildcard&gt;               Include all files in the current directory 
                                   and subdirectories according to the
