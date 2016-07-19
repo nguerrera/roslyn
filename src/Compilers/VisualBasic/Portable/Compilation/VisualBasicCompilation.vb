@@ -2302,7 +2302,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     Dim normalizedPath = moduleBeingBuilt.NormalizeDebugDocumentPath(tree.FilePath, basePath:=Nothing)
                     Dim existingDoc = moduleBeingBuilt.TryGetDebugDocumentForNormalizedPath(normalizedPath)
                     If existingDoc Is Nothing Then
-                        moduleBeingBuilt.AddDebugDocument(MakeDebugSourceDocumentForTree(normalizedPath, tree, False))
+                        moduleBeingBuilt.AddDebugDocument(MakeDebugSourceDocumentForTree(normalizedPath, tree, moduleBeingBuilt.EmbedSourceInPdbFilter(tree)))
                     End If
                 End If
             Next
