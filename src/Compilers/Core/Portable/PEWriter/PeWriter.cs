@@ -88,6 +88,8 @@ namespace Microsoft.Cci
                     nativePdbWriterOpt.AssertAllDefinitionsHaveTokens(mdWriter.Module.GetSymbolToLocationMap());
 #endif
                 }
+
+                nativePdbWriterOpt.WriteRemainingEmbeddedDocuments(mdWriter.Module.EmbeddedDocuments);
             }
 
             Stream peStream = getPeStream();
@@ -132,6 +134,8 @@ namespace Microsoft.Cci
             if (mdWriter.EmitStandaloneDebugMetadata)
             {
                 Debug.Assert(getPortablePdbStreamOpt != null);
+
+                mdWriter.AddRemainingEmbeddedDocuments(mdWriter.Module.EmbeddedDocuments);
 
                 var portablePdbBlob = new BlobBuilder();
                 var portablePdbBuilder = mdWriter.GetPortablePdbBuilder(metadataRootBuilder.Sizes, debugEntryPointHandle, deterministicIdProvider);

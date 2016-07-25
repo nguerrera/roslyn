@@ -4395,8 +4395,8 @@ To remove the warning, you can use /reference instead (set the Embed Interop Typ
  /additionalfile:&lt;file list&gt;   Additional files that don't directly affect code
                                generation but may be used by analyzers for producing
                                errors or warnings.
- /embed:&lt;file_list&gt;            Add source files to compilation and embed them 
-                               in PDB
+ /embed                        Embed all source files in the PDB.
+ /embed:&lt;file list&gt;            Embed specfic files the PDB
 
                         - RESOURCES -
  /win32res:&lt;file&gt;              Specify a Win32 resource file (.res)
@@ -4918,5 +4918,11 @@ To remove the warning, you can use /reference instead (set the Embed Interop Typ
   </data>
   <data name="ERR_ExplicitTupleElementNames" xml:space="preserve">
     <value>Cannot reference 'System.Runtime.CompilerServices.TupleElementNamesAttribute' explicitly. Use the tuple syntax to define tuple names.</value>
+  </data>
+  <data name="ERR_CannotEmbedWithoutPdb" xml:space="preserve">
+    <value>/embed specified without /debug. Cannot embed file in PDB as no PDB will be written.</value>
+  </data>
+  <data name="ERR_CannotEmbedWithoutPdb_Title" xml:space="preserve">
+    <value>/embed specified without /debug.</value>
   </data>
 </root>

@@ -388,6 +388,15 @@ namespace Microsoft.CodeAnalysis {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to SourceText must have non-null encoding to be embedded..
+        /// </summary>
+        internal static string EmbeddedTextMustHaveEncoding {
+            get {
+                return ResourceManager.GetString("EmbeddedTextMustHaveEncoding", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to A key in the pathMap is empty..
         /// </summary>
         internal static string EmptyKeyInPathMap {

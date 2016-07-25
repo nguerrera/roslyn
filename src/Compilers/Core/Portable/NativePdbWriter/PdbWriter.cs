@@ -1535,6 +1535,22 @@ namespace Microsoft.Cci
             }
         }
 
+        /// <summary>
+        /// Write document entries for any embedded text document that does not yet have an entry.
+        /// </summary>
+        /// <remarks>
+        /// This is done after serializing method debug info to ensure that we embed all requested
+        /// text even if there are no correspodning sequence points.
+        /// </remarks>
+        public void WriteRemainingEmbeddedDocuments(IEnumerable<DebugSourceDocument> embeddedDocuments)
+        {
+            foreach (var document in embeddedDocuments)
+            {
+                Debug.Assert(document.GetSourceInfo().EmbeddedTextOpt != null);
+                GetDocumentWriter(document);
+            }
+        }
+
         #endregion
     }
 }

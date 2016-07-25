@@ -1451,7 +1451,7 @@ namespace Microsoft.CodeAnalysis
         internal abstract CommonPEModuleBuilder CreateModuleBuilder(
             EmitOptions emitOptions,
             IMethodSymbol debugEntryPoint,
-            Func<SyntaxTree, bool> embedSourceInPdb,
+            IEnumerable<EmbeddedText> embeddedTexts,
             IEnumerable<ResourceDescription> manifestResources,
             CompilationTestData testData,
             DiagnosticBag diagnostics,
@@ -1533,7 +1533,7 @@ namespace Microsoft.CodeAnalysis
                     var moduleBeingBuilt = this.CreateModuleBuilder(
                         emitOptions: EmitOptions.Default,
                         debugEntryPoint: null,
-                        embedSourceInPdb: null,
+                        embeddedTexts: null,
                         manifestResources: null,
                         testData: null,
                         diagnostics: discardedDiagnostics,
@@ -1632,12 +1632,7 @@ namespace Microsoft.CodeAnalysis
         /// Unlike ordinary entry-point which is limited to a non-generic static method of specific signature, there are no restrictions on the <paramref name="debugEntryPoint"/> 
         /// method other than having a method body (extern, interface, or abstract methods are not allowed).
         /// </param>
-        /// <param name="embedSourceInPdb">
-        /// A callback to decide if a given syntax tree should have its text embedded in to the PDB.
-        /// 
-        /// A value of null (default) is equivalent to specifying a callback that always returns false,
-        /// i.e. no source will be embedded in the PDB.
-        /// </param>
+        /// <param name="embeddedTexts">The texts to embed in the PDB.</param>
         /// <param name="cancellationToken">To cancel the emit process.</param>
         public EmitResult Emit(
             Stream peStream,
@@ -1647,7 +1642,7 @@ namespace Microsoft.CodeAnalysis
             IEnumerable<ResourceDescription> manifestResources = null,
             EmitOptions options = null,
             IMethodSymbol debugEntryPoint = null,
-            Func<SyntaxTree, bool> embedSourceInPdb = null,
+            IEnumerable<EmbeddedText> embeddedTexts = null,
             CancellationToken cancellationToken = default(CancellationToken))
         {
             if (peStream == null)
@@ -1673,7 +1668,7 @@ namespace Microsoft.CodeAnalysis
                 manifestResources,
                 options,
                 debugEntryPoint,
-                embedSourceInPdb,
+                embeddedTexts,
                 testData: null,
                 cancellationToken: cancellationToken);
         }
@@ -1690,7 +1685,7 @@ namespace Microsoft.CodeAnalysis
             IEnumerable<ResourceDescription> manifestResources,
             EmitOptions options,
             IMethodSymbol debugEntryPoint,
-            Func<SyntaxTree, bool> embedSourceInPdb,
+            IEnumerable<EmbeddedText> embeddedTexts,
             CompilationTestData testData,
             CancellationToken cancellationToken)
         {
@@ -1700,8 +1695,8 @@ namespace Microsoft.CodeAnalysis
                 diagnostics,
                 manifestResources,
                 options,
-                embedSourceInPdb,
                 debugEntryPoint,
+                embeddedTexts,
                 testData,
                 cancellationToken);
 
@@ -1848,8 +1843,8 @@ namespace Microsoft.CodeAnalysis
             DiagnosticBag diagnostics,
             IEnumerable<ResourceDescription> manifestResources,
             EmitOptions options,
-            Func<SyntaxTree, bool> embedSourceInPdb,
             IMethodSymbol debugEntryPoint,
+            IEnumerable<EmbeddedText> embeddedTexts,
             CompilationTestData testData,
             CancellationToken cancellationToken)
         {
@@ -1896,7 +1891,7 @@ namespace Microsoft.CodeAnalysis
             return this.CreateModuleBuilder(
                 options,
                 debugEntryPoint,
-                embedSourceInPdb,
+                embeddedTexts,
                 manifestResources,
                 testData,
                 diagnostics,

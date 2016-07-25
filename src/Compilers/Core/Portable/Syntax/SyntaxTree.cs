@@ -314,18 +314,13 @@ namespace Microsoft.CodeAnalysis
         public abstract IList<TextChange> GetChanges(SyntaxTree oldTree);
 
         /// <summary>
-        /// Gets the checksum + algorithm id and embedded source bytes to use in the PDB.
+        /// Gets the checksum + algorithm id to use in the PDB.
         /// </summary>
-        /// <param name="embedSource">
-        /// Indicates whether to embed the source bytes in the PDB.
-        /// </param>
-        internal Cci.DebugSourceInfo GetDebugSourceInfo(bool embedSource)
+        internal Cci.DebugSourceInfo GetDebugSourceInfo()
         {
-            SourceText text = null;
-
             if (_lazyChecksum.IsDefault)
             {
-                text = GetText();
+                var text = this.GetText();
                 _lazyChecksum = text.GetChecksum();
                 _lazyHashAlgorithm = text.ChecksumAlgorithm;
             }
@@ -337,7 +332,9 @@ namespace Microsoft.CodeAnalysis
                 throw ExceptionUtilities.Unreachable;
             }
 
-            return new Cci.DebugSourceInfo(guid, _lazyChecksum, embedSource ? (text ?? GetText()) : null);
+            // NOTE: If this tree is to be embedded, it's debug source info should have  
+            // been obtained via EmbeddedText.GetDebugSourceInfo() and not here.
+            return new Cci.DebugSourceInfo(guid, _lazyChecksum, embeddedTextOpt: null);
         }
 
         /// <summary>

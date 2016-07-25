@@ -725,6 +725,22 @@ namespace Microsoft.Cci
             return documentHandle;
         }
 
+        /// <summary>
+        /// Add document entries for any embedded text document that does not yet have an entry.
+        /// </summary>
+        /// <remarks>
+        /// This is done after serializing method debug info to ensure that we embed all requested
+        /// text even if there are no correspodning sequence points.
+        /// </remarks>
+        public void AddRemainingEmbeddedDocuments(IEnumerable<DebugSourceDocument> documents)
+        {
+            foreach (var document in documents)
+            {
+                Debug.Assert(document.GetSourceInfo().EmbeddedTextOpt != null);
+                GetOrAddDocument(document, _documentIndex);
+            }
+        }
+
         private static readonly char[] s_separator1 = { '/' };
         private static readonly char[] s_separator2 = { '\\' };
 

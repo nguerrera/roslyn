@@ -33,7 +33,7 @@ namespace Microsoft.CodeAnalysis
         public abstract DiagnosticFormatter DiagnosticFormatter { get; }
         private readonly HashSet<Diagnostic> _reportedDiagnostics = new HashSet<Diagnostic>();
 
-        public abstract Compilation CreateCompilation(TextWriter consoleOutput, TouchedFileLogger touchedFilesLogger, ErrorLogger errorLoggerOpt, ConcurrentSet<SyntaxTree> syntaxTreesToEmbed);
+        public abstract Compilation CreateCompilation(TextWriter consoleOutput, TouchedFileLogger touchedFilesLogger, ErrorLogger errorLoggerOpt);
         public abstract void PrintLogo(TextWriter consoleOutput);
         public abstract void PrintHelp(TextWriter consoleOutput);
         internal abstract string GetToolName();
@@ -352,9 +352,8 @@ namespace Microsoft.CodeAnalysis
             }
 
             var touchedFilesLogger = (Arguments.TouchedFilesPath != null) ? new TouchedFileLogger() : null;
-            var treesToEmbedInPdb = new ConcurrentSet<SyntaxTree>();
 
-            Compilation compilation = CreateCompilation(consoleOutput, touchedFilesLogger, errorLogger, treesToEmbedInPdb);
+            Compilation compilation = CreateCompilation(consoleOutput, touchedFilesLogger, errorLogger);
             if (compilation == null)
             {
                 return Failed;
@@ -363,6 +362,7 @@ namespace Microsoft.CodeAnalysis
             var diagnostics = new List<DiagnosticInfo>();
             ImmutableArray<DiagnosticAnalyzer> analyzers = ResolveAnalyzersFromArguments(diagnostics, MessageProvider);
             var additionalTextFiles = ResolveAdditionalFilesFromArguments(diagnostics, MessageProvider, touchedFilesLogger);
+            ImmutableArray<EmbeddedText> embeddedTexts = AcquireEmbeddedTexts(compilation, diagnostics);
             if (ReportErrors(diagnostics, consoleOutput, errorLogger))
             {
                 return Failed;
@@ -400,10 +400,6 @@ namespace Microsoft.CodeAnalysis
                     return Failed;
                 }
 
-                var embedSourceInPdb = treesToEmbedInPdb.Count == 0 
-                    ? (Func<SyntaxTree, bool>)null 
-                    : treesToEmbedInPdb.Contains;
-
                 cancellationToken.ThrowIfCancellationRequested();
 
                 string outputName = GetOutputFileName(compilation, cancellationToken);
@@ -437,8 +433,8 @@ namespace Microsoft.CodeAnalysis
                         diagnosticBag,
                         Arguments.ManifestResources,
                         emitOptions,
-                        embedSourceInPdb,
                         debugEntryPoint: null,
+                        embeddedTexts: embeddedTexts,
                         testData: null,
                         cancellationToken: cancellationToken);
 
@@ -634,6 +630,41 @@ namespace Microsoft.CodeAnalysis
             }
 
             return Succeeded;
+        }
+
+        private ImmutableArray<EmbeddedText> AcquireEmbeddedTexts(Compilation compilation, IList<DiagnosticInfo> diagnostics)
+        {
+            var embeddedFiles = Arguments.EmbeddedFiles;
+
+            if (embeddedFiles.IsDefaultOrEmpty) // TODO (WIP): change to IsEmpty once set by VB. 
+            {
+                return ImmutableArray<EmbeddedText>.Empty;
+            }
+
+            // It is the common case that there to be overlap between the source set and the embedded set
+            // and we do not want to read the source files again here.
+
+            var builder = ImmutableArray.CreateBuilder<EmbeddedText>(embeddedFiles.Length);
+            var trees = Enumerable.ToDictionary(compilation.SyntaxTrees, tree => tree.FilePath);
+
+            foreach (var file in embeddedFiles)
+            {
+                SyntaxTree tree;
+                if (trees.TryGetValue(file.Path, out tree))
+                {
+                    builder.Add(new EmbeddedText(file.Path, tree.GetText()));
+                }
+                else
+                {
+                    SourceText text = ReadFileContent(file, diagnostics);
+                    if (text != null)
+                    {
+                        builder.Add(new EmbeddedText(file.Path, text));
+                    }
+                }
+            }
+
+            return builder.ToImmutable();
         }
 
         protected virtual ImmutableArray<AdditionalTextFile> ResolveAdditionalFilesFromArguments(List<DiagnosticInfo> diagnostics, CommonMessageProvider messageProvider, TouchedFileLogger touchedFilesLogger)

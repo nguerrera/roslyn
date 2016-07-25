@@ -2110,7 +2110,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         Friend Overrides Function CreateModuleBuilder(
             emitOptions As EmitOptions,
             debugEntryPoint As IMethodSymbol,
-            embedSourceInPdb As Func(Of SyntaxTree, Boolean),
+            embeddedTexts As IEnumerable(Of EmbeddedText),
             manifestResources As IEnumerable(Of ResourceDescription),
             testData As CompilationTestData,
             diagnostics As DiagnosticBag,
@@ -2119,7 +2119,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Return CreateModuleBuilder(
                 emitOptions,
                 debugEntryPoint,
-                embedSourceInPdb,
+                embeddedTexts,
                 manifestResources,
                 testData,
                 diagnostics,
@@ -2130,7 +2130,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         Friend Overloads Function CreateModuleBuilder(
             emitOptions As EmitOptions,
             debugEntryPoint As IMethodSymbol,
-            embedSourceInPdb As Func(Of SyntaxTree, Boolean),
+            embeddedTexts As IEnumerable(Of EmbeddedText),
             manifestResources As IEnumerable(Of ResourceDescription),
             testData As CompilationTestData,
             diagnostics As DiagnosticBag,
@@ -2172,8 +2172,6 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             If debugEntryPoint IsNot Nothing Then
                 moduleBeingBuilt.SetDebugEntryPoint(DirectCast(debugEntryPoint, MethodSymbol), diagnostics)
             End If
-
-            moduleBeingBuilt.EmbedSourceInPdbFilter = embedSourceInPdb
 
             If testData IsNot Nothing Then
                 moduleBeingBuilt.SetMethodTestData(testData.Methods)
@@ -2302,7 +2300,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     Dim normalizedPath = moduleBeingBuilt.NormalizeDebugDocumentPath(tree.FilePath, basePath:=Nothing)
                     Dim existingDoc = moduleBeingBuilt.TryGetDebugDocumentForNormalizedPath(normalizedPath)
                     If existingDoc Is Nothing Then
-                        moduleBeingBuilt.AddDebugDocument(MakeDebugSourceDocumentForTree(normalizedPath, tree, moduleBeingBuilt.EmbedSourceInPdbFilter(tree)))
+                        moduleBeingBuilt.AddDebugDocument(MakeDebugSourceDocumentForTree(normalizedPath, tree))
                     End If
                 End If
             Next
@@ -2388,6 +2386,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     End If
 
                     Dim sourceInfo = existingDoc.GetSourceInfo()
+
                     If CheckSumMatches(checkSumText, sourceInfo.Checksum) Then
                         Dim guid As Guid = Guid.Parse(checksumDirective.Guid.ValueText)
                         If guid = sourceInfo.AlgorithmId Then
@@ -2444,8 +2443,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Return builder.ToImmutableAndFree()
         End Function
 
-        Private Shared Function MakeDebugSourceDocumentForTree(normalizedPath As String, tree As SyntaxTree, embedSourceInPdb As Boolean) As DebugSourceDocument
-            Return New DebugSourceDocument(normalizedPath, DebugSourceDocument.CorSymLanguageTypeBasic, Function() tree.GetDebugSourceInfo(embedSourceInPdb))
+        Private Shared Function MakeDebugSourceDocumentForTree(normalizedPath As String, tree As SyntaxTree) As DebugSourceDocument
+            Return New DebugSourceDocument(normalizedPath, DebugSourceDocument.CorSymLanguageTypeBasic, Function() tree.GetDebugSourceInfo())
         End Function
 
         Private Sub SetupWin32Resources(moduleBeingBuilt As PEModuleBuilder, win32Resources As Stream, diagnostics As DiagnosticBag)

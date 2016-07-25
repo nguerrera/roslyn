@@ -176,7 +176,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Dim name As String = Nothing
                 Dim value As String = Nothing
                 If Not TryParseOption(arg, name, value) Then
-                    sourceFiles.AddRange(ParseFileArgument(arg, baseDirectory, diagnostics, embedInPdb:=False))
+                    sourceFiles.AddRange(ParseFileArgument(arg, baseDirectory, diagnostics))
                     hasSourceFiles = True
                     Continue For
                 End If
@@ -1114,20 +1114,14 @@ lVbRuntimePlus:
                             Continue For
 
                         Case "additionalfile"
+                            value = RemoveQuotesAndSlashes(value)
                             If String.IsNullOrEmpty(value) Then
                                 AddDiagnostic(diagnostics, ERRID.ERR_ArgumentRequired, name, ":<file_list>")
                                 Continue For
                             End If
 
-                            additionalFiles.AddRange(ParseSeparatedFileArgument(value, baseDirectory, diagnostics, embedInPdb:=False))
+                            additionalFiles.AddRange(ParseSeparatedFileArgument(value, baseDirectory, diagnostics))
                             Continue For
-
-                        Case "embed"
-                            If String.IsNullOrEmpty(value) Then
-                                AddDiagnostic(diagnostics, ERRID.ERR_ArgumentRequired, name, ":<file_list>")
-                                Continue For
-                            End If
-                            sourceFiles.AddRange(ParseSeparatedFileArgument(value, baseDirectory, diagnostics, embedInPdb:=True))
                     End Select
                 End If
 

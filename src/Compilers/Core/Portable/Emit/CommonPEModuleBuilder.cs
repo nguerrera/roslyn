@@ -10,6 +10,7 @@ using System.Threading;
 using Microsoft.CodeAnalysis.CodeGen;
 using Microsoft.CodeAnalysis.Emit.NoPia;
 using Roslyn.Utilities;
+using Microsoft.CodeAnalysis.Text;
 
 namespace Microsoft.CodeAnalysis.Emit
 {
@@ -76,6 +77,9 @@ namespace Microsoft.CodeAnalysis.Emit
         // Deviating from that may result in unexpected warnings or different behavior (possibly without warnings).
         private readonly ConcurrentDictionary<string, Cci.DebugSourceDocument> _debugDocuments;
 
+        internal IEnumerable<EmbeddedText> EmbeddedTextsOpt { get; set; }
+        internal IEnumerable<Cci.DebugSourceDocument> EmbeddedDocumentsOpt { set; private get; }
+
         public abstract TEmbeddedTypesManager EmbeddedTypesManagerOpt { get; }
 
         /// <summary>
@@ -103,10 +107,6 @@ namespace Microsoft.CodeAnalysis.Emit
             Debug.Assert(TestData == null);
             TestData = methods;
         }
-
-        internal Func<SyntaxTree, bool> EmbedSourceInPdbFilter { get; set; }
-
-        internal bool EmbedSourceInPdb(SyntaxTree tree) => EmbedSourceInPdbFilter?.Invoke(tree) ?? false;
 
         protected PEModuleBuilder(
             TCompilation compilation,
@@ -875,6 +875,14 @@ namespace Microsoft.CodeAnalysis.Emit
             get
             {
                 return _methodBodyMap.Count;
+            }
+        }
+
+        IEnumerable<Cci.DebugSourceDocument> Cci.IModule.EmbeddedDocuments
+        {
+            get
+            {
+                return this.EmbeddedDocumentsOpt ?? SpecializedCollections.EmptyEnumerable<Cci.DebugSourceDocument>();
             }
         }
 

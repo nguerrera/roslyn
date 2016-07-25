@@ -206,6 +206,11 @@ namespace Microsoft.Cci
         // provide a basis for approximating the capacities of
         // various databases used during Emit.
         int HintNumberOfMethodDefinitions { get; }
+
+        /// <summary>
+        /// Documents that will have their text embedded in the PDB.
+        /// </summary>
+        IEnumerable<Cci.DebugSourceDocument> EmbeddedDocuments { get; }
     }
 
     internal struct DefinitionWithLocation

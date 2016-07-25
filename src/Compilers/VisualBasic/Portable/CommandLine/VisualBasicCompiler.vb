@@ -74,7 +74,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Return tree
         End Function
 
-        Public Overrides Function CreateCompilation(consoleOutput As TextWriter, touchedFilesLogger As TouchedFileLogger, errorLogger As ErrorLogger, treesToEmbedInPdb As ConcurrentSet(Of SyntaxTree)) As Compilation
+        Public Overrides Function CreateCompilation(consoleOutput As TextWriter, touchedFilesLogger As TouchedFileLogger, errorLogger As ErrorLogger) As Compilation
             Dim parseOptions = Arguments.ParseOptions
 
             ' We compute script parse options once so we don't have to do it repeatedly in

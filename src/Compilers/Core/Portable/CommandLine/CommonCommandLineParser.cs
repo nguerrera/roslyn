@@ -920,7 +920,7 @@ namespace Microsoft.CodeAnalysis
             }
         }
 
-        private CommandLineSourceFile ToCommandLineSourceFile(string resolvedPath, bool embedInPdb)
+        private CommandLineSourceFile ToCommandLineSourceFile(string resolvedPath)
         {
             string extension = PathUtilities.GetExtension(resolvedPath);
 
@@ -936,10 +936,10 @@ namespace Microsoft.CodeAnalysis
                 isScriptFile = false;
             }
 
-            return new CommandLineSourceFile(resolvedPath, isScriptFile, embedInPdb);
+            return new CommandLineSourceFile(resolvedPath, isScriptFile);
         }
 
-        internal IEnumerable<CommandLineSourceFile> ParseFileArgument(string arg, string baseDirectory, IList<Diagnostic> errors, bool embedInPdb)
+        internal IEnumerable<CommandLineSourceFile> ParseFileArgument(string arg, string baseDirectory, IList<Diagnostic> errors)
         {
             Debug.Assert(IsScriptRunner || !arg.StartsWith("-", StringComparison.Ordinal) && !arg.StartsWith("@", StringComparison.Ordinal));
 
@@ -953,7 +953,7 @@ namespace Microsoft.CodeAnalysis
             int wildcard = path.IndexOfAny(s_wildcards);
             if (wildcard != -1)
             {
-                foreach (var file in ExpandFileNamePattern(path, baseDirectory, PortableShim.SearchOption.TopDirectoryOnly, errors, embedInPdb))
+                foreach (var file in ExpandFileNamePattern(path, baseDirectory, PortableShim.SearchOption.TopDirectoryOnly, errors))
                 {
                     yield return file;
                 }
@@ -967,16 +967,16 @@ namespace Microsoft.CodeAnalysis
                 }
                 else
                 {
-                    yield return ToCommandLineSourceFile(resolvedPath, embedInPdb);
+                    yield return ToCommandLineSourceFile(resolvedPath);
                 }
             }
         }
 
-        internal IEnumerable<CommandLineSourceFile> ParseSeparatedFileArgument(string value, string baseDirectory, IList<Diagnostic> errors, bool embedInPdb)
+        internal IEnumerable<CommandLineSourceFile> ParseSeparatedFileArgument(string value, string baseDirectory, IList<Diagnostic> errors)
         {
             foreach (string path in ParseSeparatedPaths(value).Where((path) => !string.IsNullOrWhiteSpace(path)))
             {
-                foreach (var file in ParseFileArgument(path, baseDirectory, errors, embedInPdb))
+                foreach (var file in ParseFileArgument(path, baseDirectory, errors))
                 {
                     yield return file;
                 }
@@ -985,7 +985,7 @@ namespace Microsoft.CodeAnalysis
 
         internal IEnumerable<CommandLineSourceFile> ParseRecurseArgument(string arg, string baseDirectory, IList<Diagnostic> errors)
         {
-            return ExpandFileNamePattern(arg, baseDirectory, PortableShim.SearchOption.AllDirectories, errors, embedInPdb: false);
+            return ExpandFileNamePattern(arg, baseDirectory, PortableShim.SearchOption.AllDirectories, errors);
         }
 
         internal static Encoding TryParseEncodingName(string arg)
@@ -1025,7 +1025,7 @@ namespace Microsoft.CodeAnalysis
             return SourceHashAlgorithm.None;
         }
 
-        private IEnumerable<CommandLineSourceFile> ExpandFileNamePattern(string path, string baseDirectory, object searchOption, IList<Diagnostic> errors, bool embedInPdb)
+        private IEnumerable<CommandLineSourceFile> ExpandFileNamePattern(string path, string baseDirectory, object searchOption, IList<Diagnostic> errors)
         {
             string directory = PathUtilities.GetDirectoryName(path);
             string pattern = PathUtilities.GetFileName(path);
@@ -1080,7 +1080,7 @@ namespace Microsoft.CodeAnalysis
                         }
 
                         yielded = true;
-                        yield return ToCommandLineSourceFile(resolvedPath, embedInPdb);
+                        yield return ToCommandLineSourceFile(resolvedPath);
                     }
                 }
 

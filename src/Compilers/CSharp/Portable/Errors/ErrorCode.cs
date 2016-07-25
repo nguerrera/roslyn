@@ -1343,7 +1343,11 @@ namespace Microsoft.CodeAnalysis.CSharp
         ERR_ExpressionTreeContainsLocalFunction = 8110,
         #endregion diagnostics for local functions introduced in C# 7
 
-        // gap here; available 8111-8115
+        // gap here; available 8111-8114
+
+        #region diagnosics for embedded source introduced in C# 7
+        ERR_CannotEmbedWithoutPdb = 8115,
+        #endregion
 
         #region diagnostics for pattern-matching introduced in C# 7
         ERR_PatternNullableType = 8116,
@@ -1378,7 +1382,7 @@ namespace Microsoft.CodeAnalysis.CSharp
 
         #endregion tuple diagnostics introduced in C# 7
 
-        // huge gap here; available 8216-8889
+        // huge gap here; available 8218-8889
 
         #region diagnostics for ref locals and ref returns introduced in C# 7
         ERR_AutoPropertyCannotBeRefReturning = 8890,

@@ -140,7 +140,7 @@ public class C
                     manifestResources: null,
                     options: null,
                     debugEntryPoint: null,
-                    embedSourceInPdb: null,
+                    embeddedTexts: null,
                     testData: new CompilationTestData() { SymWriterFactory = () => new MockSymUnmanagedWriter() });
 
                 result.Diagnostics.Verify(
@@ -172,7 +172,7 @@ public class C
                     manifestResources: null,
                     options: null,
                     debugEntryPoint: null,
-                    embedSourceInPdb: null,
+                    embeddedTexts: null,
                     testData: new CompilationTestData() { SymWriterFactory = () => new object() });
 
                 result.Diagnostics.Verify(
@@ -204,7 +204,7 @@ public class C
                     manifestResources: null,
                     options: null,
                     debugEntryPoint: null,
-                    embedSourceInPdb: null,
+                    embeddedTexts: null,
                     testData: new CompilationTestData() { SymWriterFactory = () => new MockSymUnmanagedWriter() });
 
                 result.Diagnostics.Verify(

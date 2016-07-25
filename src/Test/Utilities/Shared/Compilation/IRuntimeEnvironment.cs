@@ -214,7 +214,7 @@ namespace Roslyn.Test.Utilities
                         manifestResources: manifestResources,
                         options: EmitOptions.Default,
                         debugEntryPoint: null,
-                        embedSourceInPdb: null,
+                        embeddedTexts: null,
                         testData: testData,
                         cancellationToken: default(CancellationToken));
                 }

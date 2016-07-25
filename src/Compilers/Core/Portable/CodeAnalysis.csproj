@@ -50,6 +50,7 @@
     </Content>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="EmbeddedText.cs" />
     <Compile Include="InternalUtilities\LargeBlobBuildingStream.cs" />
     <Compile Include="GlobalSuppressions.cs" />
     <Compile Include="InternalUtilities\IncrementalHash.cs" />

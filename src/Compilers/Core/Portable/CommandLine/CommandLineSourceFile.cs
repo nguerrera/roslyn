@@ -10,13 +10,15 @@ namespace Microsoft.CodeAnalysis
     /// </summary>
     public struct CommandLineSourceFile
     {
-        internal CommandLineSourceFile(string path, bool isScript, bool embedInPdb)
+        private readonly string _path;
+        private readonly bool _isScript;
+
+        internal CommandLineSourceFile(string path, bool isScript)
         {
             Debug.Assert(!string.IsNullOrEmpty(path));
 
-            Path = path;
-            IsScript = isScript;
-            EmbedInPdb = embedInPdb;
+            _path = path;
+            _isScript = isScript;
         }
 
         /// <summary>
@@ -25,16 +27,17 @@ namespace Microsoft.CodeAnalysis
         /// <remarks>
         /// Although this path is absolute it may not be normalized. That is, it may contain ".." and "." in the middle. 
         /// </remarks>
-        public string Path { get; }
+        public string Path
+        {
+            get { return _path; }
+        }
 
         /// <summary>
         /// True if the file should be treated as a script file.
         /// </summary>
-        public bool IsScript { get; }
-
-        /// <summary>
-        /// True if the file should be embedded in the PDB.
-        /// </summary>
-        public bool EmbedInPdb { get; }
+        public bool IsScript
+        {
+            get { return _isScript; }
+        }
     }
 }

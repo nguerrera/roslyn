@@ -5031,8 +5031,6 @@
 /additionalfile:&lt;file list&gt;       Additional files that don't directly affect code
                                   generation but may be used by analyzers for producing
                                   errors or warnings.
-/embed:&lt;file_list&gt;                Add source files to compilation and embed them
-                                  in PDB.
 
                                   - RESOURCES -
 /linkresource:&lt;resinfo&gt;           Links the specified file as an external 
@@ -5060,7 +5058,6 @@
 /debug:pdbonly                    Emit PDB file only.
 /deterministic                    Produce a deterministic assembly
                                   (including module version GUID and timestamp)
-
 
                                   - ERRORS AND WARNINGS -
 /nowarn                           Disable all warnings.

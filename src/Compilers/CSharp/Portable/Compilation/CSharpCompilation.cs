@@ -2221,7 +2221,7 @@ namespace Microsoft.CodeAnalysis.CSharp
         internal override CommonPEModuleBuilder CreateModuleBuilder(
             EmitOptions emitOptions,
             IMethodSymbol debugEntryPoint,
-            Func<SyntaxTree, bool> embedSourceInPdb,
+            IEnumerable<EmbeddedText> embeddedTexts,
             IEnumerable<ResourceDescription> manifestResources,
             CompilationTestData testData,
             DiagnosticBag diagnostics,
@@ -2262,11 +2262,14 @@ namespace Microsoft.CodeAnalysis.CSharp
                     manifestResources);
             }
 
-            moduleBeingBuilt.EmbedSourceInPdbFilter = embedSourceInPdb;
-
             if (debugEntryPoint != null)
             {
                 moduleBeingBuilt.SetDebugEntryPoint((MethodSymbol)debugEntryPoint, diagnostics);
+            }
+
+            if (embeddedTexts != null)
+            {
+                moduleBeingBuilt.EmbeddedTextsOpt = embeddedTexts;
             }
 
             // testData is only passed when running tests.
@@ -2403,6 +2406,31 @@ namespace Microsoft.CodeAnalysis.CSharp
                 return false;
             }
 
+            // Add debug documents for all embedded text first. This ensures that embedding takes priority over the 
+            // syntax tree pass, which will not embed.
+            if (moduleBeingBuilt.EmbeddedTextsOpt != null)
+            {
+                var embeddedDocuments = ArrayBuilder<Cci.DebugSourceDocument>.GetInstance();
+
+                foreach (var text in moduleBeingBuilt.EmbeddedTextsOpt)
+                {
+                    if (!text.IsDefault)
+                    {
+                        Debug.Assert(!string.IsNullOrEmpty(text.FilePath));
+                        Debug.Assert(text.Text?.Encoding != null);
+
+                        string normalizedPath = moduleBeingBuilt.NormalizeDebugDocumentPath(text.FilePath, basePath: null);
+                        var existingDoc = moduleBeingBuilt.TryGetDebugDocumentForNormalizedPath(normalizedPath);
+                        if (existingDoc == null)
+                        {
+                            moduleBeingBuilt.AddDebugDocument(MakeDebugSourceDoucmentForEmbeddedText(normalizedPath, text));
+                        }
+                    }
+                }
+
+                moduleBeingBuilt.EmbeddedDocumentsOpt = embeddedDocuments.ToImmutableAndFree();
+            }
+
             // Add debug documents for all trees with distinct paths.
             foreach (var tree in syntaxTrees)
             {
@@ -2414,7 +2442,7 @@ namespace Microsoft.CodeAnalysis.CSharp
                     var existingDoc = moduleBeingBuilt.TryGetDebugDocumentForNormalizedPath(normalizedPath);
                     if (existingDoc == null)
                     {
-                        moduleBeingBuilt.AddDebugDocument(MakeDebugSourceDocumentForTree(normalizedPath, tree, moduleBeingBuilt.EmbedSourceInPdb(tree)));
+                        moduleBeingBuilt.AddDebugDocument(MakeDebugSourceDocumentForTree(normalizedPath, tree));
                     }
                 }
             }
@@ -2607,9 +2635,14 @@ namespace Microsoft.CodeAnalysis.CSharp
             return builder.ToImmutableAndFree();
         }
 
-        private static Cci.DebugSourceDocument MakeDebugSourceDocumentForTree(string normalizedPath, SyntaxTree tree, bool embedSourceInPdb)
+        private static Cci.DebugSourceDocument MakeDebugSourceDocumentForTree(string normalizedPath, SyntaxTree tree)
         {
-            return new Cci.DebugSourceDocument(normalizedPath, Cci.DebugSourceDocument.CorSymLanguageTypeCSharp, () => tree.GetDebugSourceInfo(embedSourceInPdb));
+            return new Cci.DebugSourceDocument(normalizedPath, Cci.DebugSourceDocument.CorSymLanguageTypeCSharp, () => tree.GetDebugSourceInfo());
+        }
+
+        private static Cci.DebugSourceDocument MakeDebugSourceDoucmentForEmbeddedText(string normalizedPath, EmbeddedText text)
+        {
+            return new Cci.DebugSourceDocument(normalizedPath, Cci.DebugSourceDocument.CorSymLanguageTypeCSharp, () => text.GetDebugSourceInfo());
         }
 
         private void SetupWin32Resources(PEModuleBuilder moduleBeingBuilt, Stream win32Resources, DiagnosticBag diagnostics)
