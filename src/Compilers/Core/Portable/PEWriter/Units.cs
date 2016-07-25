@@ -207,6 +207,12 @@ namespace Microsoft.Cci
         // various databases used during Emit.
         int HintNumberOfMethodDefinitions { get; }
 
+    /// <summary>
+        /// Number of debug documents in the module. 
+        /// Used to determine capacities of lists and indices when emitting debug info.
+        /// </summary>
+        int DebugDocumentCount { get; }
+
         /// <summary>
         /// Documents that will have their text embedded in the PDB.
         /// </summary>

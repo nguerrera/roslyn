@@ -28,6 +28,7 @@ namespace Microsoft.CodeAnalysis.Emit
         internal abstract ImmutableDictionary<Cci.ITypeDefinition, ImmutableArray<Cci.ITypeDefinitionMember>> GetSynthesizedMembers();
         internal abstract CommonEmbeddedTypesManager CommonEmbeddedTypesManagerOpt { get; }
         internal abstract Cci.ITypeReference EncTranslateType(ITypeSymbol type, DiagnosticBag diagnostics);
+        internal abstract Cci.DebugSourceDocument GetSourceDocumentFromIndex(uint index);
     }
 
     /// <summary>
@@ -54,7 +55,8 @@ namespace Microsoft.CodeAnalysis.Emit
         private readonly ConcurrentCache<ValueTuple<string, string>, string> _normalizedPathsCache = new ConcurrentCache<ValueTuple<string, string>, string>(16);
 
         private readonly TokenMap<Cci.IReference> _referencesInILMap = new TokenMap<Cci.IReference>();
-        private readonly StringTokenMap _stringsInILMap = new StringTokenMap();
+        private readonly ItemTokenMap<string> _stringsInILMap = new ItemTokenMap<string>();
+        private readonly ItemTokenMap<Cci.DebugSourceDocument> _sourceDocumentsInILMap = new ItemTokenMap<Cci.DebugSourceDocument>();
         private readonly ConcurrentDictionary<TMethodSymbol, Cci.IMethodBody> _methodBodyMap =
             new ConcurrentDictionary<TMethodSymbol, Cci.IMethodBody>(ReferenceEqualityComparer.Instance);
 
@@ -332,6 +334,33 @@ namespace Microsoft.CodeAnalysis.Emit
             return result.ToImmutableAndFree();
         }
 
+
+        internal Cci.IFieldReference GetModuleVersionId(Cci.ITypeReference mvidType, TSyntaxNode syntaxOpt, DiagnosticBag diagnostics)
+        {
+            PrivateImplementationDetails details = GetPrivateImplClass(syntaxOpt, diagnostics);
+            EnsurePrivateImplementationDetailsStaticConstructor(details, syntaxOpt, diagnostics);
+
+            return details.GetModuleVersionId(mvidType);
+        }
+
+        internal Cci.IFieldReference GetInstrumentationPayloadRoot(int analysisKind, Cci.ITypeReference payloadType, TSyntaxNode syntaxOpt, DiagnosticBag diagnostics)
+        {
+            PrivateImplementationDetails details = GetPrivateImplClass(syntaxOpt, diagnostics);
+            EnsurePrivateImplementationDetailsStaticConstructor(details, syntaxOpt, diagnostics);
+
+            return details.GetOrAddInstrumentationPayloadRoot(analysisKind, payloadType);
+        }
+
+        private void EnsurePrivateImplementationDetailsStaticConstructor(PrivateImplementationDetails details, TSyntaxNode syntaxOpt, DiagnosticBag diagnostics)
+        {
+            if (details.GetMethod(WellKnownMemberNames.StaticConstructorName) == null)
+            {
+                details.TryAddSynthesizedMethod(CreatePrivateImplementationDetailsStaticConstructor(details, syntaxOpt, diagnostics));
+            }
+        }
+
+        protected abstract Cci.IMethodDefinition CreatePrivateImplementationDetailsStaticConstructor(PrivateImplementationDetails details, TSyntaxNode syntaxOpt, DiagnosticBag diagnostics);
+
         #region Synthesized Members
 
         /// <summary>
@@ -574,6 +603,16 @@ namespace Microsoft.CodeAnalysis.Emit
                 ReferenceDependencyWalker.VisitReference(symbol, new EmitContext(this, syntaxNode, diagnostics));
             }
             return token;
+        }
+
+        public uint GetSourceDocumentIndexForIL(Cci.DebugSourceDocument document)
+        {
+            return _sourceDocumentsInILMap.GetOrAddTokenFor(document);
+        }
+
+        internal override Cci.DebugSourceDocument GetSourceDocumentFromIndex(uint token)
+        {
+            return _sourceDocumentsInILMap.GetItem(token);
         }
 
         public Cci.IReference GetReferenceFromToken(uint token)
@@ -878,6 +917,8 @@ namespace Microsoft.CodeAnalysis.Emit
             }
         }
 
+        int Cci.IModule.DebugDocumentCount => _debugDocuments.Count;
+        
         IEnumerable<Cci.DebugSourceDocument> Cci.IModule.EmbeddedDocuments
         {
             get
