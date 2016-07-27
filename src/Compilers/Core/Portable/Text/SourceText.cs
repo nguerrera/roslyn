@@ -9,6 +9,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using Roslyn.Utilities;
+using System.ComponentModel;
 
 namespace Microsoft.CodeAnalysis.Text
 {
@@ -27,7 +28,7 @@ namespace Microsoft.CodeAnalysis.Text
         private SourceTextContainer _lazyContainer;
         private TextLineCollection _lazyLineInfo;
         private ImmutableArray<byte> _lazyChecksum;
-
+ 
         private static readonly Encoding s_utf8EncodingWithNoBOM = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: false);
 
         protected SourceText(ImmutableArray<byte> checksum = default(ImmutableArray<byte>), SourceHashAlgorithm checksumAlgorithm = SourceHashAlgorithm.Sha1, SourceTextContainer container = null)
@@ -44,6 +45,7 @@ namespace Microsoft.CodeAnalysis.Text
             _lazyContainer = container;
         }
 
+       
         internal static void ValidateChecksumAlgorithm(SourceHashAlgorithm checksumAlgorithm)
         {
             if (!Cci.DebugSourceDocument.IsSupportedAlgorithm(checksumAlgorithm))
@@ -74,6 +76,7 @@ namespace Microsoft.CodeAnalysis.Text
                 throw new ArgumentNullException(nameof(text));
             }
 
+            // We disallow embedding if given string + encoding so that user must specify exact bytes to embed.
             return new StringText(text, encoding, checksumAlgorithm: checksumAlgorithm);
         }
 
@@ -90,6 +93,7 @@ namespace Microsoft.CodeAnalysis.Text
         /// </param>
         /// <param name="throwIfBinaryDetected">If the decoded text contains at least two consecutive NUL
         /// characters, then an <see cref="InvalidDataException"/> is thrown.</param>
+        /// <param name="canBeEmbedded">True if the text can be passed to <see cref="EmbeddedText.Create"/> and be embedded in a PDB.</param>
         /// <exception cref="ArgumentNullException"><paramref name="stream"/> is null.</exception>
         /// <exception cref="ArgumentException">
         /// <paramref name="stream"/> doesn't support reading or seeking.
@@ -99,7 +103,7 @@ namespace Microsoft.CodeAnalysis.Text
         /// <exception cref="InvalidDataException">Two consecutive NUL characters were detected in the decoded text and <paramref name="throwIfBinaryDetected"/> was true.</exception>
         /// <exception cref="IOException">An I/O error occurs.</exception>
         /// <remarks>Reads from the beginning of the stream. Leaves the stream open.</remarks>
-        public static SourceText From(Stream stream, Encoding encoding = null, SourceHashAlgorithm checksumAlgorithm = SourceHashAlgorithm.Sha1, bool throwIfBinaryDetected = false)
+        public static SourceText From(Stream stream, Encoding encoding = null, SourceHashAlgorithm checksumAlgorithm = SourceHashAlgorithm.Sha1, bool throwIfBinaryDetected = false, bool canBeEmbedded = false)
         {
             if (stream == null)
             {
@@ -112,6 +116,28 @@ namespace Microsoft.CodeAnalysis.Text
             }
 
             ValidateChecksumAlgorithm(checksumAlgorithm);
+
+            if (canBeEmbedded && stream.Length > int.MaxValue)
+            {
+                throw new ArgumentException(CodeAnalysisResources.StreamIsTooLarge, nameof(stream));
+            }
+
+            var text = FromStream(stream, ref encoding, checksumAlgorithm, throwIfBinaryDetected);
+
+            if (canBeEmbedded)
+            {
+                text.EmbeddedTextBlob = EmbeddedText.CreateBlob(stream);
+            }
+
+            return text;
+        }
+
+        private static SourceText FromStream(Stream stream, ref Encoding encoding, SourceHashAlgorithm checksumAlgorithm, bool throwIfBinaryDetected)
+        {
+            Debug.Assert(stream != null);
+            Debug.Assert(stream.CanRead);
+            Debug.Assert(stream.CanSeek);
+            Debug.Assert(Cci.DebugSourceDocument.IsSupportedAlgorithm(checksumAlgorithm));
 
             encoding = encoding ?? s_utf8EncodingWithNoBOM;
 
@@ -130,6 +156,11 @@ namespace Microsoft.CodeAnalysis.Text
             var checksum = CalculateChecksum(stream, checksumAlgorithm);
             return new StringText(text, encoding, checksum, checksumAlgorithm);
         }
+
+        // 1.0 BACKCOMPAT OVERLOAD - DO NOT TOUCH
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public static SourceText From(byte[] buffer, int length, Encoding encoding, SourceHashAlgorithm checksumAlgorithm, bool throwIfBinaryDetected)
+            => From(buffer, length, encoding, checksumAlgorithm, throwIfBinaryDetected, canBeEmbedded: false);
 
         /// <summary>
         /// Constructs a <see cref="SourceText"/> from a byte array.
@@ -151,7 +182,7 @@ namespace Microsoft.CodeAnalysis.Text
         /// <exception cref="ArgumentException"><paramref name="checksumAlgorithm"/> is not supported.</exception>
         /// <exception cref="DecoderFallbackException">If the given encoding is set to use a throwing decoder as a fallback</exception>
         /// <exception cref="InvalidDataException">Two consecutive NUL characters were detected in the decoded text and <paramref name="throwIfBinaryDetected"/> was true.</exception>
-        public static SourceText From(byte[] buffer, int length, Encoding encoding = null, SourceHashAlgorithm checksumAlgorithm = SourceHashAlgorithm.Sha1, bool throwIfBinaryDetected = false)
+        public static SourceText From(byte[] buffer, int length, Encoding encoding = null, SourceHashAlgorithm checksumAlgorithm = SourceHashAlgorithm.Sha1, bool throwIfBinaryDetected = false, bool canBeEmbedded = false)
         {
             if (buffer == null)
             {
@@ -165,6 +196,18 @@ namespace Microsoft.CodeAnalysis.Text
 
             ValidateChecksumAlgorithm(checksumAlgorithm);
 
+            var text = FromBytes(buffer, length, ref encoding, checksumAlgorithm, throwIfBinaryDetected);
+
+            if (canBeEmbedded)
+            {
+                text.EmbeddedTextBlob = EmbeddedText.CreateBlob(buffer, length);
+            }
+
+            return text;
+        }
+
+        private static SourceText FromBytes(byte[] buffer, int length, ref Encoding encoding, SourceHashAlgorithm checksumAlgorithm, bool throwIfBinaryDetected)
+        {
             string text = Decode(buffer, length, encoding ?? s_utf8EncodingWithNoBOM, out encoding);
             if (throwIfBinaryDetected && IsBinary(text))
             {
@@ -299,6 +342,13 @@ namespace Microsoft.CodeAnalysis.Text
             get { return this; }
         }
 
+        internal ImmutableArray<byte> EmbeddedTextBlob { get; private set; }
+
+        /// <summary>
+        /// Indicates whether this source text can be embedded in the PDB.
+        /// </summary>
+        public bool CanBeEmbedded => !EmbeddedTextBlob.IsDefault;
+
         /// <summary>
         /// Returns a character at given position.
         /// </summary>
@@ -431,7 +481,7 @@ namespace Microsoft.CodeAnalysis.Text
             return _lazyChecksum;
         }
 
-        private static ImmutableArray<byte> CalculateChecksum(byte[] buffer, int offset, int count, SourceHashAlgorithm algorithmId)
+        internal static ImmutableArray<byte> CalculateChecksum(byte[] buffer, int offset, int count, SourceHashAlgorithm algorithmId)
         {
             using (var algorithm = CryptographicHashProvider.TryGetAlgorithm(algorithmId))
             {

@@ -17,18 +17,7 @@ namespace Microsoft.Cci
     internal struct DebugSourceInfo
     {
         /// <summary>
-        /// The maximum number of characters in <see cref="EmbeddedTextOpt"/> to write out uncompressed.
-        /// This prevents wasting resources on compressing tiny files with little to negative gain
-        /// in PDB file size.
-        ///
-        /// Chosen as the point at which we start to see > 10% blob size reduction using all current
-        /// source files in corefx and roslyn as sample data. 
-        /// </summary>
-        public const int CompressionThreshold = 200;
- 
-        /// <summary>
         /// The ID of the hash algorithm used.
-        /// See <see cref="DebugSourceDocument.TryGetAlgorithmGuid(CodeAnalysis.Text.SourceHashAlgorithm, out Guid)"/>
         /// </summary>
         public readonly Guid AlgorithmId;
 
@@ -38,48 +27,17 @@ namespace Microsoft.Cci
         public readonly ImmutableArray<byte> Checksum;
 
         /// <summary>
-        /// The source text to embed in the PDB. (If any, otherwise null.)
+        /// The source text to embed in the PDB. (If any, otherwise default.)
         /// </summary>
-        public readonly SourceText EmbeddedTextOpt;
+        public readonly ImmutableArray<byte> EmbeddedTextBlobOpt;
 
-        public DebugSourceInfo(Guid checksumAlgorithmId, ImmutableArray<byte> checksum, SourceText embeddedTextOpt = null)
+        public DebugSourceInfo(SourceHashAlgorithm checksumAlgorithm, ImmutableArray<byte> checksum, ImmutableArray<byte> embeddedTextBlobOpt = default(ImmutableArray<byte>))
         {
+            Debug.Assert(DebugSourceDocument.IsSupportedAlgorithm(checksumAlgorithm));
+
+            AlgorithmId = DebugSourceDocument.GetAlgorithmGuid(checksumAlgorithm);
             Checksum = checksum;
-            AlgorithmId = checksumAlgorithmId;
-            EmbeddedTextOpt = embeddedTextOpt?.Length > 0 ? embeddedTextOpt : null;
-        }
-
-        public ushort WriteEmbeddedText(LargeBlobBuildingStream blobBuilder, bool writeFormatCode)
-        {
-            const ushort RawFormat = 0;
-            const ushort GzipFormat = 1;
-
-            Debug.Assert(blobBuilder != null);
-            Debug.Assert(EmbeddedTextOpt != null); // Don't call unless EmbeddedText is non-null.
-            Debug.Assert(EmbeddedTextOpt.Length > 0); // Should have been dropped in constructor
-            Debug.Assert(EmbeddedTextOpt.Encoding != null); // We should have raised ERR_EncodinglessSyntaxTree.
-
-            Stream target = blobBuilder;
-            ushort format = EmbeddedTextOpt.Length > CompressionThreshold ? GzipFormat : RawFormat;
-
-            blobBuilder.Clear();
-
-            if (writeFormatCode)
-            {
-                blobBuilder.WriteUInt16(format);
-            }
-
-            if (format == GzipFormat)
-            {
-                target = new GZipStream(target, CompressionLevel.Optimal);
-            }
-
-            using (var writer = new StreamWriter(target, EmbeddedTextOpt.Encoding))
-            {
-                EmbeddedTextOpt.Write(writer);
-            }
-
-            return format;
+            EmbeddedTextBlobOpt = embeddedTextBlobOpt;
         }
     }
 }

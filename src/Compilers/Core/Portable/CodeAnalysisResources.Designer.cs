@@ -388,15 +388,6 @@ namespace Microsoft.CodeAnalysis {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to SourceText must have non-null encoding to be embedded..
-        /// </summary>
-        internal static string EmbeddedTextMustHaveEncoding {
-            get {
-                return ResourceManager.GetString("EmbeddedTextMustHaveEncoding", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to A key in the pathMap is empty..
         /// </summary>
         internal static string EmptyKeyInPathMap {
@@ -1091,6 +1082,15 @@ namespace Microsoft.CodeAnalysis {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to SourceText must have been created with canBeEmbedded=true to be embedded..
+        /// </summary>
+        internal static string SourceTextCannotBeEmbedded {
+            get {
+                return ResourceManager.GetString("SourceTextCannotBeEmbedded", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to The span does not include the end of a line..
         /// </summary>
         internal static string SpanDoesNotIncludeEndOfLine {
@@ -1114,6 +1114,15 @@ namespace Microsoft.CodeAnalysis {
         internal static string StartMustNotBeNegative {
             get {
                 return ResourceManager.GetString("StartMustNotBeNegative", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Stream is too large..
+        /// </summary>
+        internal static string StreamIsTooLarge {
+            get {
+                return ResourceManager.GetString("StreamIsTooLarge", resourceCulture);
             }
         }
         

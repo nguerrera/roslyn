@@ -243,9 +243,7 @@ namespace Microsoft.Cci
         // in support of determinism
         private readonly bool _deterministic;
         private readonly PdbLogger _callLogger;
-
-        private LargeBlobBuildingStream _embeddedSourceBuilder = new LargeBlobBuildingStream();
-
+            
         public PdbWriter(string fileName, Func<object> symWriterFactory, bool deterministic)
         {
             _fileName = fileName;
@@ -987,24 +985,17 @@ namespace Microsoft.Cci
                     }
                 }
 
-                if (info.EmbeddedTextOpt != null)
+                if (!info.EmbeddedTextBlobOpt.IsDefault)
                 {
                     try
                     {
-                        ushort format = info.WriteEmbeddedText(_embeddedSourceBuilder, writeFormatCode: false);
-                        ArraySegment<byte> source = _embeddedSourceBuilder.GetBytes();
-                        uint sourceSize = (uint)source.Count;
-
-                        // BlobBuilder does not make blobs with offset != 0.
-                        Debug.Assert(source.Offset == 0);
-
-                        writer.SetSource(sourceSize, source.Array);
-
-                        _embeddedSourceBuilder.Clear(); // don't wait for next write to free excess memory.
+                        uint blobSize = (uint)info.EmbeddedTextBlobOpt.Length;
+   
+                        writer.SetSource(blobSize, ImmutableByteArrayInterop.DangerousGetUnderlyingArray(info.EmbeddedTextBlobOpt));
 
                         if (_callLogger.LogOperation(OP.SetSource))
                         {
-                            _callLogger.LogArgument(sourceSize);
+                            _callLogger.LogArgument(blobSize);
 
                             // Since we only have embedded text for documents that have a computed checksum,
                             // (otherwise we'd have raised ERR_EncodinglessSyntaxTree), we can rely on
@@ -1013,8 +1004,12 @@ namespace Microsoft.Cci
                             Debug.Assert(document.IsComputedChecksum);
                             Debug.Assert(!info.Checksum.IsDefault);
 
-                            // We log the format (compressed or not) since it is independent of the checksum.
-                            _callLogger.LogArgument(format);
+                            // We do, however, log the first 4 bytes which encode formatting that is not
+                            // included in the checksum.
+                            _callLogger.LogArgument(info.EmbeddedTextBlobOpt[0]);
+                            _callLogger.LogArgument(info.EmbeddedTextBlobOpt[1]);
+                            _callLogger.LogArgument(info.EmbeddedTextBlobOpt[2]);
+                            _callLogger.LogArgument(info.EmbeddedTextBlobOpt[3]);
                         }
                     }
                     catch (Exception ex)
@@ -1546,7 +1541,7 @@ namespace Microsoft.Cci
         {
             foreach (var document in embeddedDocuments)
             {
-                Debug.Assert(document.GetSourceInfo().EmbeddedTextOpt != null);
+                Debug.Assert(!document.GetSourceInfo().EmbeddedTextBlobOpt.IsDefault);
                 GetDocumentWriter(document);
             }
         }

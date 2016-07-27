@@ -148,7 +148,7 @@ namespace Microsoft.CodeAnalysis.Text
         /// The contents of <paramref name="data"/> as a byte array or null if the stream can't easily
         /// be read into a byte array.
         /// </returns>
-        private static byte[] TryGetByteArrayFromStream(Stream data)
+        internal static byte[] TryGetByteArrayFromStream(Stream data)
         {
             byte[] buffer;
 

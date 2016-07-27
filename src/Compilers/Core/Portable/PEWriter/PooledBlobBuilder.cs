@@ -2,6 +2,8 @@
 
 using Roslyn.Utilities;
 using System.Reflection.Metadata;
+using System;
+using System.Collections.Immutable;
 
 namespace Microsoft.Cci
 {
@@ -41,6 +43,13 @@ namespace Microsoft.Cci
         public new void Free()
         {
             base.Free();
+        }
+
+        public ImmutableArray<byte> ToImmutableArrayAndFree()
+        {
+            var blob = ToImmutableArray();
+            Free();
+            return blob;
         }
     }
 }

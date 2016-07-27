@@ -11,14 +11,16 @@ namespace Roslyn.Utilities
     /// <summary>
     /// A write-only memory stream backed by a <see cref="BlobBuilder"/>.
     /// </summary>
-    internal sealed class LargeBlobBuildingStream : Stream
+    internal sealed class BlobBuildingStream : Stream
     {
+        private static ObjectPool<BlobBuildingStream> s_pool = new ObjectPool<BlobBuildingStream>(() => new BlobBuildingStream());
+        private BlobBuilder _builder;
+
         /// <summary>
         /// The chunk size to be used by the underlying BlobBuilder.
         /// </summary>
         /// <remarks>
-        /// The current single use case for this type is embedded sources in PDBs and we 
-        /// have just one of these per compilation so we can afford relatively large chunks.
+        /// The current single use case for this type is embedded sources in PDBs.
         ///
         /// 32 KB is:
         ///
@@ -32,83 +34,54 @@ namespace Roslyn.Utilities
         ///   (e.g. Syntax.xml.Generated.vb is 390KB compressed!) and those are actually
         ///   attractive candidates for embedding, so we don't want to discount the large
         ///   case too heavily.)
+        ///
+        /// * We pool the outer BlobBuildingStream but only retain the first allocated chunk.
         /// </remarks>
         public const int ChunkSize = 32 * 1024;
 
-        private BlobBuilder _builder;
-
         public override bool CanWrite => true;
-
         public override bool CanRead => false;
-
         public override bool CanSeek => false;
+        public override long Length => _builder.Count;
 
-        public override long Length => _builder?.Count ?? 0;
-
-        public void Clear() => _builder?.Clear();
-
-        private void LazyAllocateBuilder()
+        public static BlobBuildingStream GetInstance()
         {
-            if (_builder == null)
-            {
-                // We don't pool this because we expect to rarely exceed 1 chunk
-                // per compilation and our chunks are significantly larger than
-                // the common blob building cases.
-                _builder = new BlobBuilder(ChunkSize);
-            }
+            return s_pool.Allocate();
+        }
+
+        private BlobBuildingStream()
+        {
+            // NOTE: We pool the wrapping BlobBuildingStream, but not individual chunks.
+            // The first chunk will be reused, but any further chunks will be freed when we're done building blob.
+            _builder = new BlobBuilder(ChunkSize);
         }
 
         public override void Write(byte[] buffer, int offset, int count)
         {
-            LazyAllocateBuilder();
             _builder.WriteBytes(buffer, offset, count);
         }
 
         public override void WriteByte(byte value)
         {
-            LazyAllocateBuilder();
             _builder.WriteByte(value);
         }
 
-        public void WriteUInt16(ushort value)
+        public void WriteInt32(int value)
         {
-            LazyAllocateBuilder();
-            _builder.WriteUInt16(value);
+            _builder.WriteInt32(value);
         }
 
-        public ImmutableArray<byte> ToImmutableArray()
+        public ImmutableArray<byte> ToImmutableArrayAndFree()
         {
-            return _builder?.ToImmutableArray() ?? ImmutableArray<byte>.Empty;
+            var blob = _builder.ToImmutableArray();
+            _builder.Clear(); // frees all but one chunk.
+            s_pool.Free(this);
+            return blob;
         }
 
-        /// <summary>
-        /// Gets the underlying mutable byte[] segment if it is contiguous.
-        /// Otherwise, allocates a large enough array and copies the content
-        /// there. The segment offset is always 0, but the count can be less
-        /// than the length of the array.
-        /// </summary>
-        public ArraySegment<byte> GetBytes()
+        public override void Flush()
         {
-            if (_builder == null)
-            {
-                return new ArraySegment<byte>(SpecializedCollections.EmptyArray<byte>(), 0, 0);
-            }
-
-            BlobBuilder.Blobs blobs = _builder.GetBlobs();
-            bool atLeastOne = blobs.MoveNext();
-            Debug.Assert(atLeastOne);
-
-            Blob blob = blobs.Current;
-            if (blobs.MoveNext())
-            {
-                // more than 1 chunk
-                return new ArraySegment<byte>(_builder.ToArray(), 0, _builder.Count);
-            }
-
-            return blob.GetBytes();
         }
-
-        public override void Flush() { }
 
         public override long Seek(long offset, SeekOrigin origin)
         {

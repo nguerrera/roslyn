@@ -137,6 +137,36 @@ namespace Microsoft.CodeAnalysis
             return ReadFileContent(file, diagnostics, out discarded);
         }
 
+        internal EmbeddedText ReadEmbeddedFileContent(CommandLineSourceFile file, IList<DiagnosticInfo> diagnostics)
+        {
+            try
+            {
+                // PERF: Using a very small buffer size for the FileStream opens up an optimization within EncodedStringText where
+                // we read the entire FileStream into a byte array in one shot. For files that are actually smaller than the buffer
+                // size, FileStream.Read still allocates the internal buffer.
+                using (var stream = PortableShim.FileStream.Create(file.Path, PortableShim.FileMode.Open, PortableShim.FileAccess.Read, PortableShim.FileShare.ReadWrite, bufferSize: 1, options: PortableShim.FileOptions.None))
+                {
+                    const int LargeObjectHeapLimit = 80 * 1024;
+
+                    if (stream.Length < LargeObjectHeapLimit)
+                    {
+                        byte[] buffer = EncodedStringText.TryGetByteArrayFromStream(stream);
+                        if (buffer != null)
+                        {
+                            return EmbeddedText.FromBytes(file.Path, buffer, (int)stream.Length, Arguments.ChecksumAlgorithm);
+                        }
+                    }
+
+                    return EmbeddedText.FromStream(file.Path, stream, Arguments.ChecksumAlgorithm);
+                }
+            }
+            catch (Exception e)
+            {
+                diagnostics.Add(ToFileReadDiagnostics(this.MessageProvider, e, file.Path));
+                return null;
+            }
+        }
+
         /// <summary>
         /// Reads content of a source file.
         /// </summary>
@@ -650,17 +680,20 @@ namespace Microsoft.CodeAnalysis
             foreach (var file in embeddedFiles)
             {
                 SyntaxTree tree;
+                EmbeddedText text;
+
                 if (trees.TryGetValue(file.Path, out tree))
                 {
-                    builder.Add(new EmbeddedText(file.Path, tree.GetText()));
+                    text = EmbeddedText.FromSource(file.Path, tree.GetText());
                 }
                 else
                 {
-                    SourceText text = ReadFileContent(file, diagnostics);
-                    if (text != null)
-                    {
-                        builder.Add(new EmbeddedText(file.Path, text));
-                    }
+                    text = ReadEmbeddedFileContent(file, diagnostics);
+                }
+
+                if (text != null)
+                {
+                    builder.Add(text);
                 }
             }
 
