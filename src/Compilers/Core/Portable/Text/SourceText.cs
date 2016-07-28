@@ -193,7 +193,13 @@ namespace Microsoft.CodeAnalysis.Text
         /// <exception cref="ArgumentException"><paramref name="checksumAlgorithm"/> is not supported.</exception>
         /// <exception cref="DecoderFallbackException">If the given encoding is set to use a throwing decoder as a fallback</exception>
         /// <exception cref="InvalidDataException">Two consecutive NUL characters were detected in the decoded text and <paramref name="throwIfBinaryDetected"/> was true.</exception>
-        public static SourceText From(byte[] buffer, int length, Encoding encoding = null, SourceHashAlgorithm checksumAlgorithm = SourceHashAlgorithm.Sha1, bool throwIfBinaryDetected = false, bool canBeEmbedded = false)
+        public static SourceText From(
+            byte[] buffer, 
+            int length, 
+            Encoding encoding = null, 
+            SourceHashAlgorithm checksumAlgorithm = SourceHashAlgorithm.Sha1,
+            bool throwIfBinaryDetected = false,
+            bool canBeEmbedded = false)
         {
             if (buffer == null)
             {
@@ -215,7 +221,8 @@ namespace Microsoft.CodeAnalysis.Text
 
             // Since we have the bytes in hand, it's easy to compute the checksum.
             var checksum = CalculateChecksum(buffer, 0, length, checksumAlgorithm);
-            return new StringText(text, encoding, checksum, checksumAlgorithm);
+            var embeddedTextBlob = canBeEmbedded ? EmbeddedText.CreateBlob(buffer, length) : default(ImmutableArray<byte>);
+            return new StringText(text, encoding, checksum, checksumAlgorithm, embeddedTextBlob);
         }
 
         /// <summary>
