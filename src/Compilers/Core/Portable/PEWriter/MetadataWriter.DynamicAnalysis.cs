@@ -215,7 +215,7 @@ namespace Microsoft.Cci
                 _documentTable.Add(new DocumentRow
                 {
                     Name = SerializeDocumentName(document.Location),
-                    HashAlgorithm = (sourceInfo.Checksum.IsDefault ? default(GuidHandle) : GetOrAddGuid(sourceInfo.AlgorithmId)),
+                    HashAlgorithm = (sourceInfo.Checksum.IsDefault ? default(GuidHandle) : GetOrAddGuid(sourceInfo.ChecksumAlgorithmId)),
                     Hash = (sourceInfo.Checksum.IsDefault) ? default(BlobHandle) : GetOrAddBlob(sourceInfo.Checksum)
                 });
             }

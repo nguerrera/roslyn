@@ -39,7 +39,6 @@ namespace Microsoft.Cci
 
         private readonly Dictionary<DebugSourceDocument, DocumentHandle> _documentIndex = new Dictionary<DebugSourceDocument, DocumentHandle>();
         private readonly Dictionary<IImportScope, ImportScopeHandle> _scopeIndex = new Dictionary<IImportScope, ImportScopeHandle>(ImportScopeEqualityComparer.Instance);
-        private LargeBlobBuildingStream _embeddedSourceBuilder = new LargeBlobBuildingStream();
 
         private void SerializeMethodDebugInfo(IMethodBody bodyOpt, int methodRid, StandaloneSignatureHandle localSignatureHandleOpt, ref LocalVariableHandle lastLocalVariableHandle, ref LocalConstantHandle lastLocalConstantHandle)
         {
@@ -703,22 +702,18 @@ namespace Microsoft.Cci
 
                 documentHandle = _debugMetadataOpt.AddDocument(
                     name: SerializeDocumentName(document.Location),
-                    hashAlgorithm: info.Checksum.IsDefault ? default(GuidHandle) : _debugMetadataOpt.GetOrAddGuid(info.AlgorithmId),
+                    hashAlgorithm: info.Checksum.IsDefault ? default(GuidHandle) : _debugMetadataOpt.GetOrAddGuid(info.ChecksumAlgorithmId),
                     hash: info.Checksum.IsDefault ? default(BlobHandle) : _debugMetadataOpt.GetOrAddBlob(info.Checksum),
                     language: _debugMetadataOpt.GetOrAddGuid(document.Language));
 
                 index.Add(document, documentHandle);
 
-                if (info.EmbeddedTextOpt != null)
+                if (info.EmbeddedTextBlob != null)
                 {
-                    info.WriteEmbeddedText(_embeddedSourceBuilder, writeFormatCode: true);
-
                     _debugMetadataOpt.AddCustomDebugInformation(
                         parent: documentHandle,
                         kind: _debugMetadataOpt.GetOrAddGuid(PortableCustomDebugInfoKinds.EmbeddedSource),
-                        value: _debugMetadataOpt.GetOrAddBlob(_embeddedSourceBuilder.ToImmutableArray()));
-
-                    _embeddedSourceBuilder.Clear(); // don't wait for next write to free excess memory.
+                        value: _debugMetadataOpt.GetOrAddBlob(info.EmbeddedTextBlob));
                 }
             }
 
@@ -736,7 +731,7 @@ namespace Microsoft.Cci
         {
             foreach (var document in documents)
             {
-                Debug.Assert(document.GetSourceInfo().EmbeddedTextOpt != null);
+                Debug.Assert(document.GetSourceInfo().EmbeddedTextBlob != null);
                 GetOrAddDocument(document, _documentIndex);
             }
         }

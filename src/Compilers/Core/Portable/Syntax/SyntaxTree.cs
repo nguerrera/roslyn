@@ -326,15 +326,11 @@ namespace Microsoft.CodeAnalysis
             }
 
             Debug.Assert(!_lazyChecksum.IsDefault);
-            Guid guid;
-            if (!Cci.DebugSourceDocument.TryGetAlgorithmGuid(_lazyHashAlgorithm, out guid))
-            {
-                throw ExceptionUtilities.Unreachable;
-            }
+            Debug.Assert(_lazyHashAlgorithm != default(SourceHashAlgorithm));
 
             // NOTE: If this tree is to be embedded, it's debug source info should have  
             // been obtained via EmbeddedText.GetDebugSourceInfo() and not here.
-            return new Cci.DebugSourceInfo(guid, _lazyChecksum, embeddedTextOpt: null);
+            return new Cci.DebugSourceInfo(_lazyChecksum, _lazyHashAlgorithm);
         }
 
         /// <summary>

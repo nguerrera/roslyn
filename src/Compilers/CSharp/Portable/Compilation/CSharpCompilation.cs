@@ -2415,17 +2415,13 @@ namespace Microsoft.CodeAnalysis.CSharp
 
                 foreach (var text in moduleBeingBuilt.EmbeddedTextsOpt)
                 {
-                    if (!text.IsDefault)
-                    {
-                        Debug.Assert(!string.IsNullOrEmpty(text.FilePath));
-                        Debug.Assert(text.Text?.Encoding != null);
+                    Debug.Assert(!string.IsNullOrEmpty(text.FilePath));
 
-                        string normalizedPath = moduleBeingBuilt.NormalizeDebugDocumentPath(text.FilePath, basePath: null);
-                        var existingDoc = moduleBeingBuilt.TryGetDebugDocumentForNormalizedPath(normalizedPath);
-                        if (existingDoc == null)
-                        {
-                            moduleBeingBuilt.AddDebugDocument(MakeDebugSourceDoucmentForEmbeddedText(normalizedPath, text));
-                        }
+                    string normalizedPath = moduleBeingBuilt.NormalizeDebugDocumentPath(text.FilePath, basePath: null);
+                    var existingDoc = moduleBeingBuilt.TryGetDebugDocumentForNormalizedPath(normalizedPath);
+                    if (existingDoc == null)
+                    {
+                        moduleBeingBuilt.AddDebugDocument(MakeDebugSourceDoucmentForEmbeddedText(normalizedPath, text));
                     }
                 }
 
@@ -2573,7 +2569,7 @@ namespace Microsoft.CodeAnalysis.CSharp
                     if (ChecksumMatches(checksumText, sourceInfo.Checksum))
                     {
                         var guid = Guid.Parse(checksumDirective.Guid.ValueText);
-                        if (guid == sourceInfo.AlgorithmId)
+                        if (guid == sourceInfo.ChecksumAlgorithmId)
                         {
                             // all parts match, nothing to do
                             continue;

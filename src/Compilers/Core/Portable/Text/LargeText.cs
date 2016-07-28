@@ -25,8 +25,8 @@ namespace Microsoft.CodeAnalysis.Text
         private readonly int _length;
         private readonly Encoding _encoding;
 
-        internal LargeText(ImmutableArray<char[]> chunks, Encoding encoding, ImmutableArray<byte> checksum, SourceHashAlgorithm checksumAlgorithm)
-            : base(checksum, checksumAlgorithm)
+        internal LargeText(ImmutableArray<char[]> chunks, Encoding encoding, ImmutableArray<byte> checksum, SourceHashAlgorithm checksumAlgorithm, ImmutableArray<byte> embeddedTextBlob)
+            : base(checksum, checksumAlgorithm, embeddedTextBlob)
         {
             _chunks = chunks;
             _encoding = encoding;
@@ -41,7 +41,7 @@ namespace Microsoft.CodeAnalysis.Text
             _length = offset;
         }
 
-        internal static SourceText Decode(Stream stream, Encoding encoding, SourceHashAlgorithm checksumAlgorithm, bool throwIfBinaryDetected)
+        internal static SourceText Decode(Stream stream, Encoding encoding, SourceHashAlgorithm checksumAlgorithm, bool throwIfBinaryDetected, bool canBeEmbedded)
         {
             stream.Seek(0, SeekOrigin.Begin);
 
@@ -90,9 +90,13 @@ namespace Microsoft.CodeAnalysis.Text
 
                     chunks.Add(chunk);
                 }
-
+                // We must compute the checksum and embedded text blob while we still have the
+                // original bytes in hand. If we do it lazily, we'd re-encode that text but encodings
+                // are not guaranteed to round-trip and so we could end up with an incorrect checksum
+                // and blob.
                 var checksum = CalculateChecksum(stream, checksumAlgorithm);
-                return new LargeText(chunks.ToImmutableAndFree(), reader.CurrentEncoding, checksum, checksumAlgorithm);
+                var embeddedTextBlob = canBeEmbedded ? EmbeddedText.CreateBlob(stream) : default(ImmutableArray<byte>);
+                return new LargeText(chunks.ToImmutableAndFree(), reader.CurrentEncoding, checksum, checksumAlgorithm, embeddedTextBlob);
             }
         }
 

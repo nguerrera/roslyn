@@ -52,7 +52,7 @@
   <ItemGroup>
     <Compile Include="CodeGen\ItemTokenMap.cs" />
     <Compile Include="EmbeddedText.cs" />
-    <Compile Include="InternalUtilities\LargeBlobBuildingStream.cs" />
+    <Compile Include="InternalUtilities\BlobBuildingStream.cs" />
     <Compile Include="GlobalSuppressions.cs" />
     <Compile Include="InternalUtilities\IncrementalHash.cs" />
     <Compile Include="PEWriter\DebugSourceInfo.cs" />

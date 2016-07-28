@@ -2389,7 +2389,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
                     If CheckSumMatches(checkSumText, sourceInfo.Checksum) Then
                         Dim guid As Guid = Guid.Parse(checksumDirective.Guid.ValueText)
-                        If guid = sourceInfo.AlgorithmId Then
+                        If guid = sourceInfo.ChecksumAlgorithmId Then
                             ' all parts match, nothing to do
                             Continue For
                         End If
