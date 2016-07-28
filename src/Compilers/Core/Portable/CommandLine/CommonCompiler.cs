@@ -57,6 +57,7 @@ namespace Microsoft.CodeAnalysis
             this.Arguments = parser.Parse(allArgs, baseDirectory, sdkDirectoryOpt, additionalReferenceDirectories);
             this.MessageProvider = parser.MessageProvider;
             this.AssemblyLoader = assemblyLoader;
+            this.EmbeddedSourcePaths = GetEmbedddedSourcePaths();
 
             if (Arguments.ParseOptions.Features.ContainsKey("debug-determinism"))
             {
@@ -185,7 +186,7 @@ namespace Microsoft.CodeAnalysis
                 using (var data = PortableShim.FileStream.Create(filePath, PortableShim.FileMode.Open, PortableShim.FileAccess.Read, PortableShim.FileShare.ReadWrite, bufferSize: 1, options: PortableShim.FileOptions.None))
                 {
                     normalizedFilePath = (string)PortableShim.FileStream.Name.GetValue(data);
-                    return EncodedStringText.Create(data, Arguments.Encoding, Arguments.ChecksumAlgorithm);
+                    return EncodedStringText.Create(data, Arguments.Encoding, Arguments.ChecksumAlgorithm, canBeEmbedded: EmbeddedSourcePaths.Contains(file.Path));
                 }
             }
             catch (Exception e)
@@ -666,13 +667,10 @@ namespace Microsoft.CodeAnalysis
         {
             var embeddedFiles = Arguments.EmbeddedFiles;
 
-            if (embeddedFiles.IsDefaultOrEmpty) // TODO (WIP): change to IsEmpty once set by VB. 
+            if (embeddedFiles.IsDefaultOrEmpty) 
             {
                 return ImmutableArray<EmbeddedText>.Empty;
             }
-
-            // It is the common case that there to be overlap between the source set and the embedded set
-            // and we do not want to read the source files again here.
 
             var builder = ImmutableArray.CreateBuilder<EmbeddedText>(embeddedFiles.Length);
             var trees = Enumerable.ToDictionary(compilation.SyntaxTrees, tree => tree.FilePath);
@@ -984,6 +982,33 @@ namespace Microsoft.CodeAnalysis
             }
 
             return builder.ToString();
+        }
+
+
+        /// <summary>
+        /// The set of source file paths that are in the set of embedded paths.
+        /// This is used to prevent reading source files that are embedded twice.
+        ///
+        /// It further prevents a race where the file we embed could have changed
+        /// since the time it was parsed.
+        /// </summary>
+        protected IReadOnlySet<string> EmbeddedSourcePaths { get; }
+
+        private ReadOnlyHashSet<string> GetEmbedddedSourcePaths()
+        {
+            if (Arguments.EmbeddedFiles.IsEmpty)
+            {
+                return ReadOnlyHashSet<string>.Empty;
+            }
+
+            var embedSet = new ReadOnlyHashSet<string>(
+                from file in Arguments.EmbeddedFiles
+                select FileUtilities.NormalizeAbsolutePath(file.Path));
+
+            return new ReadOnlyHashSet<string>(
+                from file in Arguments.SourceFiles
+                where embedSet.Contains(FileUtilities.NormalizeAbsolutePath(file.Path))
+                select file.Path);
         }
     }
 }
