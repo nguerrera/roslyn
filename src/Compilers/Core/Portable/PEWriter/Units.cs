@@ -207,7 +207,7 @@ namespace Microsoft.Cci
         // various databases used during Emit.
         int HintNumberOfMethodDefinitions { get; }
 
-    /// <summary>
+        /// <summary>
         /// Number of debug documents in the module. 
         /// Used to determine capacities of lists and indices when emitting debug info.
         /// </summary>
