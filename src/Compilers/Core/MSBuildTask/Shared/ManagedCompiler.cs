@@ -51,6 +51,12 @@ namespace Microsoft.CodeAnalysis.BuildTasks
             get { return (ITaskItem[])_store[nameof(AdditionalFiles)]; }
         }
 
+        public ITaskItem[] EmbeddedFiles
+        {
+            set { _store[nameof(EmbeddedFiles)] = value; }
+            get { return (ITaskItem[])_store[nameof(EmbeddedFiles)]; }
+        }
+
         public ITaskItem[] Analyzers
         {
             set { _store[nameof(Analyzers)] = value; }
@@ -703,7 +709,7 @@ namespace Microsoft.CodeAnalysis.BuildTasks
             AddResponseFileCommandsForSwitchesSinceInitialReleaseThatAreNeededByTheHost(commandLine);
             AddAnalyzersToCommandLine(commandLine, Analyzers);
             AddAdditionalFilesToCommandLine(commandLine);
-
+            
             // Append the sources.
             commandLine.AppendFileNamesIfNotNull(Sources, " ");
         }
@@ -715,8 +721,8 @@ namespace Microsoft.CodeAnalysis.BuildTasks
             commandLine.AppendSwitchIfNotNull("/runtimemetadataversion:", RuntimeMetadataVersion);
             commandLine.AppendSwitchIfNotNull("/checksumalgorithm:", ChecksumAlgorithm);
             commandLine.AppendSwitchIfNotNull("/instrument:", Instrument);
-
             AddFeatures(commandLine, Features);
+            AddEmbeddedFilesToCommandLine(commandLine);
         }
 
         /// <summary>
@@ -768,6 +774,24 @@ namespace Microsoft.CodeAnalysis.BuildTasks
             foreach (ITaskItem additionalFile in AdditionalFiles)
             {
                 commandLine.AppendSwitchIfNotNull("/additionalfile:", additionalFile.ItemSpec);
+            }
+        }
+
+        /// <summary>
+        /// Adds a "/embed:" switch to the command line for each pdb embedded file.
+        /// </summary>
+        private void AddEmbeddedFilesToCommandLine(CommandLineBuilderExtension commandLine)
+        {
+            // If there were no additional files passed in, don't add any /additionalfile: switches
+            // on the command-line.
+            if (EmbeddedFiles == null)
+            {
+                return;
+            }
+
+            foreach (ITaskItem additionalFile in EmbeddedFiles)
+            {
+                commandLine.AppendSwitchIfNotNull("/embed:", additionalFile.ItemSpec);
             }
         }
 
