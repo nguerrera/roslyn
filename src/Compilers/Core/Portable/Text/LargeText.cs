@@ -45,14 +45,15 @@ namespace Microsoft.CodeAnalysis.Text
         {
             stream.Seek(0, SeekOrigin.Begin);
 
-            int length = (int)stream.Length;
-            if (length == 0)
+            long longLength = stream.Length;
+            if (longLength == 0)
             {
                 return SourceText.From(string.Empty, encoding, checksumAlgorithm);
             }
 
-            var maxCharRemainingGuess = encoding.GetMaxCharCount(length);
-
+            int length = (int)longLength;
+            var maxCharRemainingGuess = encoding.GetMaxCharCountOrThrowIfHuge(stream);
+            
             using (var reader = new StreamReader(stream, encoding, detectEncodingFromByteOrderMarks: true, bufferSize: Math.Min(length, 4096), leaveOpen: true))
             {
                 ArrayBuilder<char[]> chunks = ArrayBuilder<char[]>.GetInstance(1 + maxCharRemainingGuess / ChunkSize);

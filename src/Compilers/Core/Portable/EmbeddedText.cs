@@ -110,17 +110,7 @@ namespace Microsoft.CodeAnalysis
                 return new EmbeddedText(filePath, text.GetChecksum(), text.ChecksumAlgorithm, text.PrecomputedEmbeddedTextBlob);
             }
 
-            int maxLength;
-            try
-            {
-                maxLength = text.Encoding.GetMaxByteCount(text.Length);
-            }
-            catch (ArgumentOutOfRangeException)
-            {
-                throw new ArgumentException(CodeAnalysisResources.TextIsToLongToEmbed, nameof(text));
-            }
-
-            return new EmbeddedText(filePath, text.GetChecksum(), text.ChecksumAlgorithm, CreateBlob(text, maxLength));
+            return new EmbeddedText(filePath, text.GetChecksum(), text.ChecksumAlgorithm, CreateBlob(text));
         }
 
         /// <summary>
@@ -164,7 +154,7 @@ namespace Microsoft.CodeAnalysis
 
             if (stream.Length > int.MaxValue)
             {
-                throw new ArgumentException(CodeAnalysisResources.TextIsToLongToEmbed, nameof(Stream));
+                throw new IOException(CodeAnalysisResources.StreamIsTooLong);
             }
 
             SourceText.ValidateChecksumAlgorithm(checksumAlgorithm);
@@ -288,13 +278,16 @@ namespace Microsoft.CodeAnalysis
             }
         }
 
-        private static ImmutableArray<byte> CreateBlob(SourceText sourceText, int maxByteCount)
+        private static ImmutableArray<byte> CreateBlob(SourceText sourceText)
         {
             Debug.Assert(sourceText != null);
             Debug.Assert(sourceText.CanBeEmbedded);
             Debug.Assert(sourceText.Encoding != null);
             Debug.Assert(sourceText.PrecomputedEmbeddedTextBlob.IsDefault);
-            Debug.Assert(maxByteCount > 0);
+
+            int maxByteCount = int.MaxValue;
+            try { maxByteCount = sourceText.Encoding.GetMaxByteCount(sourceText.Length);  }
+            catch (ArgumentOutOfRangeException) { }
 
             var builder = BlobBuildingStream.GetInstance();
             builder.WriteInt32(0);
@@ -325,7 +318,12 @@ namespace Microsoft.CodeAnalysis
             public override void Write(byte[] array, int offset, int count)
             {
                 base.Write(array, offset, count);
-                BytesWritten += count;
+
+                // checked arithmetic is release-enabled quasi-assert. We start with at most 
+                // int.MaxValue chars so compression or encoding would have to be abysmal for
+                // this to overflow. We'd probably be lucky to even get this far but if we do
+                // we should fail fast.
+                checked { BytesWritten += count; }
             }
 
             public override Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)

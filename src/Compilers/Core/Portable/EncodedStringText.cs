@@ -122,6 +122,7 @@ namespace Microsoft.CodeAnalysis.Text
         /// <param name="canBeEmbedded">Indicates if the text can be embedded in the PDB.</param>
         /// <returns>The <see cref="SourceText"/> decoded from the stream.</returns>
         /// <exception cref="DecoderFallbackException">The decoder was unable to decode the stream with the given encoding.</exception>
+        /// <exception cref="IOException">Error reading from stream.</exception> 
         /// <remarks>
         /// internal for unit testing
         /// </remarks>
@@ -138,7 +139,7 @@ namespace Microsoft.CodeAnalysis.Text
             data.Seek(0, SeekOrigin.Begin);
 
             // For small streams, see if we can read the byte buffer directly.
-            if (encoding.GetMaxCharCount((int)data.Length) < LargeObjectHeapLimitInChars)
+            if (encoding.GetMaxCharCountOrThrowIfHuge(data) < LargeObjectHeapLimitInChars)
             {
                 byte[] buffer = TryGetByteArrayFromStream(data);
                 if (buffer != null)

@@ -1118,6 +1118,15 @@ namespace Microsoft.CodeAnalysis {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Stream is too long..
+        /// </summary>
+        internal static string StreamIsTooLong {
+            get {
+                return ResourceManager.GetString("StreamIsTooLong", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Stream must support read and seek operations..
         /// </summary>
         internal static string StreamMustSupportReadAndSeek {
@@ -1159,15 +1168,6 @@ namespace Microsoft.CodeAnalysis {
         internal static string SymWriterNotDeterministic {
             get {
                 return ResourceManager.GetString("SymWriterNotDeterministic", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Text is too long to embed..
-        /// </summary>
-        internal static string TextIsToLongToEmbed {
-            get {
-                return ResourceManager.GetString("TextIsToLongToEmbed", resourceCulture);
             }
         }
         

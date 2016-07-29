@@ -144,14 +144,10 @@ namespace Microsoft.CodeAnalysis.Text
 
             ValidateChecksumAlgorithm(checksumAlgorithm);
 
-            if (canBeEmbedded && stream.Length > int.MaxValue)
-            {
-                throw new ArgumentException(CodeAnalysisResources.TextIsToLongToEmbed, nameof(stream));
-            }
             encoding = encoding ?? s_utf8EncodingWithNoBOM;
 
             // If the resulting string would end up on the large object heap, then use LargeEncodedText.
-            if (encoding.GetMaxCharCount((int)stream.Length) >= LargeObjectHeapLimitInChars)
+            if (encoding.GetMaxCharCountOrThrowIfHuge(stream) >= LargeObjectHeapLimitInChars)
             {
                 return LargeText.Decode(stream, encoding, checksumAlgorithm, throwIfBinaryDetected, canBeEmbedded);
             }
