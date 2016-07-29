@@ -2421,7 +2421,9 @@ namespace Microsoft.CodeAnalysis.CSharp
                     var existingDoc = moduleBeingBuilt.TryGetDebugDocumentForNormalizedPath(normalizedPath);
                     if (existingDoc == null)
                     {
-                        moduleBeingBuilt.AddDebugDocument(MakeDebugSourceDoucmentForEmbeddedText(normalizedPath, text));
+                        var newDoc = MakeDebugSourceDoucmentForEmbeddedText(normalizedPath, text);
+                        moduleBeingBuilt.AddDebugDocument(newDoc);
+                        embeddedDocuments.Add(newDoc);
                     }
                 }
 
