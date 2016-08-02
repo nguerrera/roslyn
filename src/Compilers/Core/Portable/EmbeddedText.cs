@@ -43,11 +43,7 @@ namespace Microsoft.CodeAnalysis
         /// The <see cref="ChecksumAlgorithm"/> hash of the uncrompressed bytes
         /// that's saved to the PDB.
         /// </summary>
-        /// <remarks>
-        /// Internal for consistency with SourceText and maximum flexibility around
-        /// when we compute the checksum.
-        /// </remarks>
-        internal ImmutableArray<byte> Checksum { get; }
+        public ImmutableArray<byte> Checksum { get; }
 
         /// <summary>
         /// The content that will be written to the PDB.
