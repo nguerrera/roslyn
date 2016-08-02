@@ -160,7 +160,7 @@ namespace Microsoft.CodeAnalysis
             var filePath = file.Path;
             try
             {
-                using (var data = OpenFile(filePath))
+                using (var data = OpenFileWithSmallBufferOptimization(filePath))
                 {
                     normalizedFilePath = (string)PortableShim.FileStream.Name.GetValue(data);
                     return EncodedStringText.Create(data, Arguments.Encoding, Arguments.ChecksumAlgorithm, canBeEmbedded: EmbeddedSourcePaths.Contains(file.Path));
@@ -174,7 +174,7 @@ namespace Microsoft.CodeAnalysis
             }
         }
 
-        private static Stream OpenFile(string filePath)
+        private static Stream OpenFileWithSmallBufferOptimization(string filePath)
         {
             // PERF: Using a very small buffer size for the FileStream opens up an optimization within EncodedStringText where
             // we read the entire FileStream into a byte array in one shot. For files that are actually smaller than the buffer
@@ -194,7 +194,7 @@ namespace Microsoft.CodeAnalysis
 
             try
             {
-                using (var stream = OpenFile(filePath))
+                using (var stream = OpenFileWithSmallBufferOptimization(filePath))
                 {
                     const int LargeObjectHeapLimit = 80 * 1024;
                     if (stream.Length < LargeObjectHeapLimit)
