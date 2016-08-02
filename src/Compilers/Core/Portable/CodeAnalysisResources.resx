@@ -321,6 +321,9 @@
   <data name="StreamMustSupportWrite" xml:space="preserve">
     <value>Stream must be writable.</value>
   </data>
+  <data name="PdbStreamUnexpectedWhenEmbedding" xml:space="preserve">
+    <value>PDB stream should not be given when embedding PDB into the PE stream.</value>
+  </data>
   <data name="InvalidHash" xml:space="preserve">
     <value>Invalid hash.</value>
   </data>
@@ -524,6 +527,9 @@
   </data>
   <data name="TupleUnderlyingTypeMustBeTupleCompatible" xml:space="preserve">
     <value>The underlying type for a tuple must be tuple-compatible.</value>
+  </data>
+  <data name="IOperationFeatureDisabled" xml:space="preserve">
+    <value>Feature 'IOperation' is disabled.</value>
   </data>
   <data name="SourceTextCannotBeEmbedded" xml:space="preserve">
     <value>SourceText must have been created with canBeEmbedded=true to be embedded.</value>

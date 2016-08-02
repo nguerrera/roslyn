@@ -722,6 +722,15 @@ namespace Microsoft.CodeAnalysis {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Feature &apos;IOperation&apos; is disabled..
+        /// </summary>
+        internal static string IOperationFeatureDisabled {
+            get {
+                return ResourceManager.GetString("IOperationFeatureDisabled", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Argument to &apos;/keepalive&apos; option is not a 32-bit integer..
         /// </summary>
         internal static string KeepAliveIsNotAnInteger {
@@ -934,6 +943,15 @@ namespace Microsoft.CodeAnalysis {
         internal static string PathReturnedByResolveStrongNameKeyFileMustBeAbsolute {
             get {
                 return ResourceManager.GetString("PathReturnedByResolveStrongNameKeyFileMustBeAbsolute", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to PDB stream should not be given when embedding PDB into the PE stream..
+        /// </summary>
+        internal static string PdbStreamUnexpectedWhenEmbedding {
+            get {
+                return ResourceManager.GetString("PdbStreamUnexpectedWhenEmbedding", resourceCulture);
             }
         }
         
