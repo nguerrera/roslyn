@@ -7,7 +7,7 @@ using System.Collections.Immutable;
 
 namespace Microsoft.Cci
 {
-    internal sealed class PooledBlobBuilder : BlobBuilder
+    internal sealed class PooledBlobBuilder : BlobBuilder, IDisposable
     {
         private const int PoolSize = 128;
         private const int ChunkSize = 1024;
@@ -45,11 +45,9 @@ namespace Microsoft.Cci
             base.Free();
         }
 
-        public ImmutableArray<byte> ToImmutableArrayAndFree()
+        void IDisposable.Dispose()
         {
-            var blob = ToImmutableArray();
             Free();
-            return blob;
         }
     }
 }

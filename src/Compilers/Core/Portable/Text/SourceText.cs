@@ -158,6 +158,8 @@ namespace Microsoft.CodeAnalysis.Text
                 throw new InvalidDataException();
             }
 
+            // We must compute the checksum and embedded text blob now while we still have the original bytes in hand.
+            // We cannot re-encode to obtain checksum and blob as the encoding is not guaranteed to round-trip.
             var checksum = CalculateChecksum(stream, checksumAlgorithm);
             var embeddedTextBlob = canBeEmbedded ? EmbeddedText.CreateBlob(stream) : default(ImmutableArray<byte>);
             return new StringText(text, encoding, checksum, checksumAlgorithm, embeddedTextBlob);
@@ -215,9 +217,10 @@ namespace Microsoft.CodeAnalysis.Text
                 throw new InvalidDataException();
             }
 
-            // Since we have the bytes in hand, it's easy to compute the checksum.
+            // We must compute the checksum and embedded text blob now while we still have the original bytes in hand.
+            // We cannot re-encode to obtain checksum and blob as the encoding is not guaranteed to round-trip.
             var checksum = CalculateChecksum(buffer, 0, length, checksumAlgorithm);
-            var embeddedTextBlob = canBeEmbedded ? EmbeddedText.CreateBlob(buffer, length) : default(ImmutableArray<byte>);
+            var embeddedTextBlob = canBeEmbedded ? EmbeddedText.CreateBlob(new ArraySegment<byte>(buffer, 0, length)) : default(ImmutableArray<byte>);
             return new StringText(text, encoding, checksum, checksumAlgorithm, embeddedTextBlob);
         }
 
@@ -366,7 +369,7 @@ namespace Microsoft.CodeAnalysis.Text
                     return Encoding != null;
                 }
 
-                // We use a sentinel empty blob to remember that we're fo
+                // We use a sentinel empty blob to indicate that embedding has been disallowed.
                 return !_precomputedEmbeddedTextBlob.IsEmpty;
             }
         }

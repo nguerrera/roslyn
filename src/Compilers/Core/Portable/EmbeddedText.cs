@@ -7,6 +7,7 @@ using System.Collections.Immutable;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
+using System.Reflection.Metadata;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -45,6 +46,18 @@ namespace Microsoft.CodeAnalysis
         /// </summary>
         public ImmutableArray<byte> Checksum { get; }
 
+        private EmbeddedText(string filePath, ImmutableArray<byte> checksum, SourceHashAlgorithm checksumAlgorithm, ImmutableArray<byte> blob)
+        {
+            Debug.Assert(filePath?.Length > 0);
+            Debug.Assert(Cci.DebugSourceDocument.IsSupportedAlgorithm(checksumAlgorithm));
+            Debug.Assert(!blob.IsDefault && blob.Length >= sizeof(int));
+
+            FilePath = filePath;
+            Checksum = checksum;
+            ChecksumAlgorithm = checksumAlgorithm;
+            Blob = blob;
+        }
+
         /// <summary>
         /// The content that will be written to the PDB.
         /// </summary>
@@ -55,12 +68,12 @@ namespace Microsoft.CodeAnalysis
         /// and efficient, but we don't want to be tied to it.
         /// 
         /// For efficiency, the format of this blob is exactly as it is written to the PDB,
-        /// which prevents extra copies being maded during emit.
+        /// which prevents extra copies being made during emit.
         ///
         /// The first 4 bytes (little endian int32) indicate the format:
         ///
         ///            0: data that follows is uncompressed
-        ///     Positive: data that follows is deflate compressed is original, uncompressed size
+        ///     Positive: data that follows is deflate compressed and value is original, uncompressed size
         ///     Negative: invalid at this time, but reserved to mark a different format in the future.
         /// </remarks>
         internal ImmutableArray<byte> Blob { get; }
@@ -77,19 +90,10 @@ namespace Microsoft.CodeAnalysis
         /// <exception cref="ArgumentException">
         /// <paramref name="filePath"/> empty.
         /// <paramref name="text"/> cannot be embedded (see <see cref="SourceText.CanBeEmbedded"/>).
-        /// <paramref name="text"/> is too long (maximum byte count for its encoding exceeds <see cref="int.MaxValue"/>).
         /// </exception>
         public static EmbeddedText FromSource(string filePath, SourceText text)
         {
-            if (filePath == null)
-            {
-                throw new ArgumentNullException(nameof(filePath));
-            }
-
-            if (filePath.Length == 0)
-            {
-                throw new ArgumentException(CodeAnalysisResources.ArgumentCannotBeEmpty, nameof(filePath));
-            }
+            ValidateFilePath(filePath);
 
             if (text == null)
             {
@@ -112,10 +116,11 @@ namespace Microsoft.CodeAnalysis
         /// <summary>
         /// Constructs an <see cref="EmbeddedText"/> from stream content.
         /// </summary>
+        /// <param name="filePath">The file path (pre-normalization) to use in the PDB.</param>
         /// <param name="stream">The stream.</param>
         /// <param name="checksumAlgorithm">Hash algorithm to use to calculate checksum of the text that's saved to PDB.</param>
         /// <exception cref="ArgumentNullException">
-        /// <param name="filePath" /> is null.
+        /// <paramref name="filePath" /> is null.
         /// <paramref name="stream"/> is null.
         /// </exception>
         /// <exception cref="ArgumentException">
@@ -128,15 +133,7 @@ namespace Microsoft.CodeAnalysis
         /// <remarks>Reads from the beginning of the stream. Leaves the stream open.</remarks>
         public static EmbeddedText FromStream(string filePath, Stream stream, SourceHashAlgorithm checksumAlgorithm = SourceHashAlgorithm.Sha1)
         {
-            if (filePath == null)
-            {
-                throw new ArgumentNullException(nameof(filePath));
-            }
-
-            if (filePath.Length == 0)
-            {
-                throw new ArgumentException(CodeAnalysisResources.ArgumentCannotBeEmpty, nameof(filePath));
-            }
+            ValidateFilePath(filePath);
 
             if (stream == null)
             {
@@ -148,11 +145,6 @@ namespace Microsoft.CodeAnalysis
                 throw new ArgumentException(CodeAnalysisResources.StreamMustSupportReadAndSeek, nameof(stream));
             }
 
-            if (stream.Length > int.MaxValue)
-            {
-                throw new IOException(CodeAnalysisResources.StreamIsTooLong);
-            }
-
             SourceText.ValidateChecksumAlgorithm(checksumAlgorithm);
 
             return new EmbeddedText(
@@ -162,7 +154,43 @@ namespace Microsoft.CodeAnalysis
                 CreateBlob(stream));
         }
 
-        public static EmbeddedText FromBytes(string filePath, byte[] buffer, int length, SourceHashAlgorithm checksumAlgorithm = SourceHashAlgorithm.Sha1)
+        /// <summary>
+        /// Constructs an <see cref="EmbeddedText"/> from bytes.
+        /// </summary>
+        /// <param name="filePath">The file path (pre-normalization) to use in the PDB.</param>
+        /// <param name="bytes">The bytes.</param>
+        /// <param name="checksumAlgorithm">Hash algorithm to use to calculate checksum of the text that's saved to PDB.</param>
+        /// <exception cref="ArgumentNullException">
+        /// <paramref name="bytes"/> is default-initialized.
+        /// <paramref name="filePath" /> is null.
+        /// </exception>
+        /// <exception cref="ArgumentException">
+        /// <paramref name="filePath" /> is empty.
+        /// <paramref name="checksumAlgorithm"/> is not supported.
+        /// </exception>
+        /// <exception cref="IOException">An I/O error occurs.</exception>
+        /// <remarks>Reads from the beginning of the stream. Leaves the stream open.</remarks>
+        public static EmbeddedText FromBytes(string filePath, ArraySegment<byte> bytes, SourceHashAlgorithm checksumAlgorithm = SourceHashAlgorithm.Sha1)
+        {
+            ValidateFilePath(filePath);
+
+            if (bytes.Array == null)
+            {
+                throw new ArgumentNullException(nameof(bytes));
+            }
+
+            SourceText.ValidateChecksumAlgorithm(checksumAlgorithm);
+
+            return new EmbeddedText(
+                filePath,
+                SourceText.CalculateChecksum(bytes.Array, bytes.Offset, bytes.Count, checksumAlgorithm),
+                checksumAlgorithm,
+                CreateBlob(bytes));
+        }
+
+        /// <exception cref="ArgumentNullException"><paramref name="filePath"/> is null.</exception>
+        /// <exception cref="ArgumentException"><paramref name="filePath"/> is empty.</exception>
+        private static void ValidateFilePath(string filePath)
         {
             if (filePath == null)
             {
@@ -173,36 +201,6 @@ namespace Microsoft.CodeAnalysis
             {
                 throw new ArgumentException(CodeAnalysisResources.ArgumentCannotBeEmpty, nameof(filePath));
             }
-
-            if (buffer == null)
-            {
-                throw new ArgumentNullException(nameof(buffer));
-            }
-
-            if (length < 0 || length > buffer.Length)
-            {
-                throw new ArgumentOutOfRangeException(nameof(length));
-            }
-
-            SourceText.ValidateChecksumAlgorithm(checksumAlgorithm);
-
-            return new EmbeddedText(
-                filePath, 
-                SourceText.CalculateChecksum(buffer, 0, length, checksumAlgorithm),
-                checksumAlgorithm, 
-                CreateBlob(buffer, length));
-        }
-
-        private EmbeddedText(string filePath, ImmutableArray<byte> checksum, SourceHashAlgorithm checksumAlgorithm, ImmutableArray<byte> blob)
-        {
-            Debug.Assert(filePath?.Length > 0);
-            Debug.Assert(Cci.DebugSourceDocument.IsSupportedAlgorithm(checksumAlgorithm));
-            Debug.Assert(!blob.IsDefault && blob.Length >= sizeof(int));
-
-            FilePath = filePath;
-            Checksum = checksum;
-            ChecksumAlgorithm = checksumAlgorithm;
-            Blob = blob;
         }
 
         /// <summary>
@@ -212,100 +210,138 @@ namespace Microsoft.CodeAnalysis
         {
             Debug.Assert(stream != null);
             Debug.Assert(stream.CanRead);
-            Debug.Assert(stream.CanSeek);;
+            Debug.Assert(stream.CanSeek); ;
             Debug.Assert(stream.Length <= int.MaxValue);
 
+            long longLength = stream.Length;
+            Debug.Assert(longLength >= 0);
+
+            if (longLength > int.MaxValue)
+            {
+                throw new IOException(CodeAnalysisResources.StreamIsTooLong);
+            }
+
             stream.Seek(0, SeekOrigin.Begin);
-            int length = (int)stream.Length;
+            int length = (int)longLength;
 
             if (length < CompressionThreshold)
             {
-                var builder = Cci.PooledBlobBuilder.GetInstance();
-                builder.WriteInt32(0);
-
-                int bytesWritten = builder.TryWriteBytes(stream, length);
-                if (length != bytesWritten)
+                using (var builder = Cci.PooledBlobBuilder.GetInstance())
                 {
-                    throw new EndOfStreamException();
-                }
+                    builder.WriteInt32(0);
+                    int bytesWritten = builder.TryWriteBytes(stream, length);
+                    if (length != bytesWritten)
+                    {
+                        throw new EndOfStreamException();
+                    }
 
-                return builder.ToImmutableArrayAndFree();
+                    return builder.ToImmutableArray();
+                }
             }
             else
             {
-                Debug.Assert(length > 0);
-                var builder = BlobBuildingStream.GetInstance();
-                builder.WriteInt32(length);
-
-                using (var deflater = new DeflateStream(builder, CompressionLevel.Optimal))
+                using (var builder = BlobBuildingStream.GetInstance())
                 {
-                    stream.CopyTo(deflater);
-                }
+                    builder.WriteInt32(length);
 
-                return builder.ToImmutableArrayAndFree();
+                    using (var deflater = new DeflateStream(builder, CompressionLevel.Optimal, leaveOpen: true))
+                    {
+                        stream.CopyTo(deflater);
+                    }
+
+                    return builder.ToImmutableArray();
+                }
             }
         }
 
-        internal static ImmutableArray<byte> CreateBlob(byte[] buffer, int length)
+        internal static ImmutableArray<byte> CreateBlob(ArraySegment<byte> bytes)
         {
-            Debug.Assert(buffer != null);
-            Debug.Assert(length > 0);
-            Debug.Assert(length <= buffer.Length);
+            Debug.Assert(bytes.Array != null);
 
-            if (length < CompressionThreshold)
+            if (bytes.Count < CompressionThreshold)
             {
-                var builder = Cci.PooledBlobBuilder.GetInstance();
-                builder.WriteInt32(0);
-                builder.WriteBytes(buffer, 0, length);
-                return builder.ToImmutableArrayAndFree();
+                using (var builder = Cci.PooledBlobBuilder.GetInstance())
+                {
+                    builder.WriteInt32(0);
+                    builder.WriteBytes(bytes.Array, bytes.Offset, bytes.Count);
+                    return builder.ToImmutableArray();
+                }
             }
             else
             {
-                Debug.Assert(length > 0);
-                var builder = BlobBuildingStream.GetInstance();
-                builder.WriteInt32(length);
-
-                using (var deflater = new DeflateStream(builder, CompressionLevel.Optimal))
+                using (var builder = BlobBuildingStream.GetInstance())
                 {
-                    deflater.Write(buffer, 0, length);
-                }
+                    builder.WriteInt32(bytes.Count);
 
-                return builder.ToImmutableArrayAndFree();
+                    using (var deflater = new DeflateStream(builder, CompressionLevel.Optimal, leaveOpen: true))
+                    {
+                        deflater.Write(bytes.Array, bytes.Offset, bytes.Count);
+                    }
+
+                    return builder.ToImmutableArray();
+                }
             }
         }
 
-        private static ImmutableArray<byte> CreateBlob(SourceText sourceText)
+        private static ImmutableArray<byte> CreateBlob(SourceText text)
         {
-            Debug.Assert(sourceText != null);
-            Debug.Assert(sourceText.CanBeEmbedded);
-            Debug.Assert(sourceText.Encoding != null);
-            Debug.Assert(sourceText.PrecomputedEmbeddedTextBlob.IsDefault);
+            Debug.Assert(text != null);
+            Debug.Assert(text.CanBeEmbedded);
+            Debug.Assert(text.Encoding != null);
+            Debug.Assert(text.PrecomputedEmbeddedTextBlob.IsDefault);
 
-            int maxByteCount = int.MaxValue;
-            try { maxByteCount = sourceText.Encoding.GetMaxByteCount(sourceText.Length);  }
-            catch (ArgumentOutOfRangeException) { }
-
-            var builder = BlobBuildingStream.GetInstance();
-            builder.WriteInt32(0);
-
-            var deflater = maxByteCount > CompressionThreshold ? new CountingDeflateStream(builder) : null;
-            using (var writer = new StreamWriter((Stream)deflater ?? builder, sourceText.Encoding))
+            int maxByteCount;
+            try
             {
-                sourceText.Write(writer);
+                maxByteCount = text.Encoding.GetMaxByteCount(text.Length);
+            }
+            catch (ArgumentOutOfRangeException)
+            {
+                // Encoding does not provide a way to predict that max byte count would not
+                // fit in Int32 and we must therefore catch ArgumentOutOfRange to handle that
+                // case.
+                maxByteCount = int.MaxValue;
             }
 
-            if (deflater != null)
+            using (var builder = BlobBuildingStream.GetInstance())
             {
-                builder.PatchLeadingInt32(deflater.BytesWritten);
-            }
+                if (maxByteCount < CompressionThreshold)
+                {
+                    builder.WriteInt32(0);
 
-            return builder.ToImmutableArrayAndFree();
+                    using (var writer = new StreamWriter(builder, text.Encoding, bufferSize: text.Length, leaveOpen: true))
+                    {
+                        text.Write(writer);
+                    }
+                }
+                else
+                {
+                    Blob reserved = builder.ReserveBytes(4);
+
+                    using (var deflater = new CountingDeflateStream(builder, CompressionLevel.Optimal, leaveOpen: true))
+                    {
+                        using (var writer = new StreamWriter(deflater, text.Encoding, bufferSize: 1024, leaveOpen: true))
+                        {
+                            text.Write(writer);
+                        }
+
+                        new BlobWriter(reserved).WriteInt32(deflater.BytesWritten);
+                    }
+                }
+
+                return builder.ToImmutableArray();
+            }
+        }
+
+        internal Cci.DebugSourceInfo GetDebugSourceInfo()
+        {
+            return new Cci.DebugSourceInfo(Checksum, ChecksumAlgorithm, Blob);
         }
 
         private sealed class CountingDeflateStream : DeflateStream
         {
-            public CountingDeflateStream(Stream stream)
-                : base(stream, CompressionLevel.Optimal)
+            public CountingDeflateStream(Stream stream, CompressionLevel compressionLevel, bool leaveOpen)
+                : base(stream, compressionLevel, leaveOpen)
             {
             }
 
@@ -322,20 +358,18 @@ namespace Microsoft.CodeAnalysis
                 checked { BytesWritten += count; }
             }
 
+            public override void WriteByte(byte value)
+            {
+                base.WriteByte(value);
+
+                // same rationale for checked arithmetic as above.
+                checked { BytesWritten++; }; 
+            }
+
             public override Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
             {
                 throw ExceptionUtilities.Unreachable;
             }
-
-            public override void WriteByte(byte value)
-            {
-                throw ExceptionUtilities.Unreachable;
-            }
-        }
-
-        internal Cci.DebugSourceInfo GetDebugSourceInfo()
-        {
-            return new Cci.DebugSourceInfo(Checksum, ChecksumAlgorithm, Blob);
         }
     }
 }

@@ -71,35 +71,30 @@ namespace Roslyn.Utilities
             _builder.WriteInt32(value);
         }
 
-        public void PatchLeadingInt32(int value)
+        public Blob ReserveBytes(int byteCount)
         {
-            foreach (var blob in _builder.GetBlobs())
-            {
-                ArraySegment<byte> segment = blob.GetBytes();
-                Debug.Assert(segment.Count > 4);
-
-                byte[] array = segment.Array;
-                array[0] = (byte)(value & 0xFF);
-                array[1] = (byte)((value >> 8) & 0xFF);
-                array[2] = (byte)((value >> 16) & 0xFF);
-                array[3] = (byte)((value >> 24) & 0xFF); 
-
-                return;
-            }
-
-            throw ExceptionUtilities.Unreachable;
+            return _builder.ReserveBytes(byteCount);
         }
 
-        public ImmutableArray<byte> ToImmutableArrayAndFree()
+        public ImmutableArray<byte> ToImmutableArray()
         {
-            var blob = _builder.ToImmutableArray();
-            _builder.Clear(); // frees all but one chunk.
-            s_pool.Free(this);
-            return blob;
+            return _builder.ToImmutableArray();
+        }
+
+        public void Free()
+        {
+            _builder.Clear();  // frees all but first chunk
+            s_pool.Free(this); // return first chunk to pool
         }
 
         public override void Flush()
         {
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            Debug.Assert(disposing);
+            Free();
         }
 
         public override long Seek(long offset, SeekOrigin origin)
@@ -122,5 +117,6 @@ namespace Roslyn.Utilities
             get { throw new NotSupportedException(); }
             set { throw new NotSupportedException(); }
         }
+
     }
 }

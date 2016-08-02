@@ -6,6 +6,7 @@ using System.IO;
 using System.Text;
 using System.Threading;
 using Roslyn.Utilities;
+using System.Diagnostics;
 
 namespace Microsoft.CodeAnalysis.Text
 {
@@ -51,8 +52,9 @@ namespace Microsoft.CodeAnalysis.Text
                 return SourceText.From(string.Empty, encoding, checksumAlgorithm);
             }
 
-            int length = (int)longLength;
             var maxCharRemainingGuess = encoding.GetMaxCharCountOrThrowIfHuge(stream);
+            Debug.Assert(longLength > 0 && longLength <= int.MaxValue); // GetMaxCharCountOrThrowIfHuge should have thrown.
+            int length = (int)longLength;
             
             using (var reader = new StreamReader(stream, encoding, detectEncodingFromByteOrderMarks: true, bufferSize: Math.Min(length, 4096), leaveOpen: true))
             {
@@ -91,10 +93,9 @@ namespace Microsoft.CodeAnalysis.Text
 
                     chunks.Add(chunk);
                 }
-                // We must compute the checksum and embedded text blob while we still have the
-                // original bytes in hand. If we do it lazily, we'd re-encode that text but encodings
-                // are not guaranteed to round-trip and so we could end up with an incorrect checksum
-                // and blob.
+
+                // We must compute the checksum and embedded text blob now while we still have the original bytes in hand.
+                // We cannot re-encode to obtain checksum and blob as the encoding is not guaranteed to round-trip.
                 var checksum = CalculateChecksum(stream, checksumAlgorithm);
                 var embeddedTextBlob = canBeEmbedded ? EmbeddedText.CreateBlob(stream) : default(ImmutableArray<byte>);
                 return new LargeText(chunks.ToImmutableAndFree(), reader.CurrentEncoding, checksum, checksumAlgorithm, embeddedTextBlob);

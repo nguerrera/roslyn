@@ -969,7 +969,7 @@ namespace Microsoft.Cci
                     try
                     {
                         var algorithmId = info.ChecksumAlgorithmId;
-                        var checksum = info.Checksum.ToArray();
+                        var checksum = ImmutableByteArrayInterop.DangerousGetUnderlyingArray(info.Checksum);
                         var checksumSize = (uint)checksum.Length;
                         writer.SetCheckSum(algorithmId, checksumSize, checksum);
                         if (_callLogger.LogOperation(OP.SetCheckSum))

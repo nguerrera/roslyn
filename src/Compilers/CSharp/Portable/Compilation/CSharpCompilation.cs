@@ -2421,7 +2421,7 @@ namespace Microsoft.CodeAnalysis.CSharp
                     var existingDoc = moduleBeingBuilt.TryGetDebugDocumentForNormalizedPath(normalizedPath);
                     if (existingDoc == null)
                     {
-                        var newDoc = MakeDebugSourceDoucmentForEmbeddedText(normalizedPath, text);
+                        var newDoc = MakeDebugSourceDocumentForEmbeddedText(normalizedPath, text);
                         moduleBeingBuilt.AddDebugDocument(newDoc);
                         embeddedDocuments.Add(newDoc);
                     }
@@ -2639,7 +2639,7 @@ namespace Microsoft.CodeAnalysis.CSharp
             return new Cci.DebugSourceDocument(normalizedPath, Cci.DebugSourceDocument.CorSymLanguageTypeCSharp, () => tree.GetDebugSourceInfo());
         }
 
-        private static Cci.DebugSourceDocument MakeDebugSourceDoucmentForEmbeddedText(string normalizedPath, EmbeddedText text)
+        private static Cci.DebugSourceDocument MakeDebugSourceDocumentForEmbeddedText(string normalizedPath, EmbeddedText text)
         {
             return new Cci.DebugSourceDocument(normalizedPath, Cci.DebugSourceDocument.CorSymLanguageTypeCSharp, () => text.GetDebugSourceInfo());
         }

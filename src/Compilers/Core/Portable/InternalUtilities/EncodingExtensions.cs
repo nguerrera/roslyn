@@ -21,19 +21,23 @@ namespace Roslyn.Utilities
 
             if (length <= int.MaxValue)
             {
-                try { return encoding.GetMaxCharCount((int)length); }
-                catch (ArgumentOutOfRangeException) { }
+                try
+                {
+                    return encoding.GetMaxCharCount((int)length);
+                }
+                catch (ArgumentOutOfRangeException)
+                {
+                    // Encoding does not provide a way to predict that max byte count would not
+                    // fit in Int32 and we must therefore catch ArgumentOutOfRange to handle that
+                    // case.
+                }
             }
 
+#if WORKSPACE_DESKTOP
+            throw new IOException(WorkspacesResources.Stream_is_too_long);
+#else
             throw new IOException(CodeAnalysisResources.StreamIsTooLong);
+#endif
         }
     }
-
-#if WORKSPACE_DESKTOP
-    internal static partial class CodeAnalysisResources
-    {
-        public static string StreamIsTooLong => WorkspacesResources.Stream_is_too_long;
-    }
-#endif
 }
-

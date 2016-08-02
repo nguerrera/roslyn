@@ -764,16 +764,12 @@ namespace Microsoft.CodeAnalysis.BuildTasks
         /// </summary>
         private void AddAdditionalFilesToCommandLine(CommandLineBuilderExtension commandLine)
         {
-            // If there were no additional files passed in, don't add any /additionalfile: switches
-            // on the command-line.
-            if (AdditionalFiles == null)
+            if (AdditionalFiles != null)
             {
-                return;
-            }
-
-            foreach (ITaskItem additionalFile in AdditionalFiles)
-            {
-                commandLine.AppendSwitchIfNotNull("/additionalfile:", additionalFile.ItemSpec);
+                foreach (ITaskItem additionalFile in AdditionalFiles)
+                {
+                    commandLine.AppendSwitchIfNotNull("/additionalfile:", additionalFile.ItemSpec);
+                }
             }
         }
 
@@ -782,16 +778,12 @@ namespace Microsoft.CodeAnalysis.BuildTasks
         /// </summary>
         private void AddEmbeddedFilesToCommandLine(CommandLineBuilderExtension commandLine)
         {
-            // If there were no additional files passed in, don't add any /additionalfile: switches
-            // on the command-line.
-            if (EmbeddedFiles == null)
+            if (EmbeddedFiles != null)
             {
-                return;
-            }
-
-            foreach (ITaskItem additionalFile in EmbeddedFiles)
-            {
-                commandLine.AppendSwitchIfNotNull("/embed:", additionalFile.ItemSpec);
+                foreach (ITaskItem embeddedFile in EmbeddedFiles)
+                {
+                    commandLine.AppendSwitchIfNotNull("/embed:", embeddedFile.ItemSpec);
+                }
             }
         }
 
