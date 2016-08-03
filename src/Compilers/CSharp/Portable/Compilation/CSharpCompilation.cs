@@ -2221,6 +2221,7 @@ namespace Microsoft.CodeAnalysis.CSharp
         internal override CommonPEModuleBuilder CreateModuleBuilder(
             EmitOptions emitOptions,
             IMethodSymbol debugEntryPoint,
+            IEnumerable<EmbeddedText> embeddedTexts,
             IEnumerable<ResourceDescription> manifestResources,
             CompilationTestData testData,
             DiagnosticBag diagnostics,
@@ -2264,6 +2265,11 @@ namespace Microsoft.CodeAnalysis.CSharp
             if (debugEntryPoint != null)
             {
                 moduleBeingBuilt.SetDebugEntryPoint((MethodSymbol)debugEntryPoint, diagnostics);
+            }
+
+            if (embeddedTexts != null)
+            {
+                moduleBeingBuilt.EmbeddedTextsOpt = embeddedTexts;
             }
 
             // testData is only passed when running tests.
@@ -2399,6 +2405,29 @@ namespace Microsoft.CodeAnalysis.CSharp
             if (!allTreesDebuggable)
             {
                 return false;
+            }
+
+            // Add debug documents for all embedded text first. This ensures that embedding takes priority over the 
+            // syntax tree pass, which will not embed.
+            if (moduleBeingBuilt.EmbeddedTextsOpt != null)
+            {
+                var embeddedDocuments = ArrayBuilder<Cci.DebugSourceDocument>.GetInstance();
+
+                foreach (var text in moduleBeingBuilt.EmbeddedTextsOpt)
+                {
+                    Debug.Assert(!string.IsNullOrEmpty(text.FilePath));
+
+                    string normalizedPath = moduleBeingBuilt.NormalizeDebugDocumentPath(text.FilePath, basePath: null);
+                    var existingDoc = moduleBeingBuilt.TryGetDebugDocumentForNormalizedPath(normalizedPath);
+                    if (existingDoc == null)
+                    {
+                        var newDoc = MakeDebugSourceDocumentForEmbeddedText(normalizedPath, text);
+                        moduleBeingBuilt.AddDebugDocument(newDoc);
+                        embeddedDocuments.Add(newDoc);
+                    }
+                }
+
+                moduleBeingBuilt.EmbeddedDocumentsOpt = embeddedDocuments.ToImmutableAndFree();
             }
 
             // Add debug documents for all trees with distinct paths.
@@ -2538,11 +2567,11 @@ namespace Microsoft.CodeAnalysis.CSharp
                         continue;
                     }
 
-                    var checksumAndAlgorithm = existingDoc.ChecksumAndAlgorithm;
-                    if (ChecksumMatches(checksumText, checksumAndAlgorithm.Item1))
+                    var sourceInfo = existingDoc.GetSourceInfo();
+                    if (ChecksumMatches(checksumText, sourceInfo.Checksum))
                     {
                         var guid = Guid.Parse(checksumDirective.Guid.ValueText);
-                        if (guid == checksumAndAlgorithm.Item2)
+                        if (guid == sourceInfo.ChecksumAlgorithmId)
                         {
                             // all parts match, nothing to do
                             continue;
@@ -2607,7 +2636,12 @@ namespace Microsoft.CodeAnalysis.CSharp
 
         private static Cci.DebugSourceDocument MakeDebugSourceDocumentForTree(string normalizedPath, SyntaxTree tree)
         {
-            return new Cci.DebugSourceDocument(normalizedPath, Cci.DebugSourceDocument.CorSymLanguageTypeCSharp, () => tree.GetChecksumAndAlgorithm());
+            return new Cci.DebugSourceDocument(normalizedPath, Cci.DebugSourceDocument.CorSymLanguageTypeCSharp, () => tree.GetDebugSourceInfo());
+        }
+
+        private static Cci.DebugSourceDocument MakeDebugSourceDocumentForEmbeddedText(string normalizedPath, EmbeddedText text)
+        {
+            return new Cci.DebugSourceDocument(normalizedPath, Cci.DebugSourceDocument.CorSymLanguageTypeCSharp, () => text.GetDebugSourceInfo());
         }
 
         private void SetupWin32Resources(PEModuleBuilder moduleBeingBuilt, Stream win32Resources, DiagnosticBag diagnostics)

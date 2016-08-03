@@ -118,7 +118,8 @@ namespace Microsoft.Cci
             DefineKickoffMethod,
             OpenMapTokensToSourceSpans,
             MapTokenToSourceSpan,
-            CloseMapTokensToSourceSpans
+            CloseMapTokensToSourceSpans,
+            SetSource
         }
 
         public bool LogOperation(PdbWriterOperation op)
@@ -956,13 +957,13 @@ namespace Microsoft.Cci
 
                 _documentMap.Add(document, writer);
 
-                var checksumAndAlgorithm = document.ChecksumAndAlgorithm;
-                if (!checksumAndAlgorithm.Item1.IsDefault)
+                DebugSourceInfo info = document.GetSourceInfo();
+                if (!info.Checksum.IsDefault)
                 {
                     try
                     {
-                        var algorithmId = checksumAndAlgorithm.Item2;
-                        var checksum = checksumAndAlgorithm.Item1.ToArray();
+                        var algorithmId = info.ChecksumAlgorithmId;
+                        var checksum = ImmutableByteArrayInterop.DangerousGetUnderlyingArray(info.Checksum);
                         var checksumSize = (uint)checksum.Length;
                         writer.SetCheckSum(algorithmId, checksumSize, checksum);
                         if (_callLogger.LogOperation(OP.SetCheckSum))
@@ -970,6 +971,39 @@ namespace Microsoft.Cci
                             _callLogger.LogArgument(algorithmId.ToByteArray());
                             _callLogger.LogArgument(checksumSize);
                             _callLogger.LogArgument(checksum);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        throw new PdbWritingException(ex);
+                    }
+                }
+
+                if (!info.EmbeddedTextBlob.IsDefault)
+                {
+                    try
+                    {
+                        uint blobSize = (uint)info.EmbeddedTextBlob.Length;
+   
+                        writer.SetSource(blobSize, ImmutableByteArrayInterop.DangerousGetUnderlyingArray(info.EmbeddedTextBlob));
+
+                        if (_callLogger.LogOperation(OP.SetSource))
+                        {
+                            _callLogger.LogArgument(blobSize);
+
+                            // Since we only have embedded text for documents that have a computed checksum,
+                            // (otherwise we'd have raised ERR_EncodinglessSyntaxTree), we can rely on
+                            // having already logged the checksum (cryptographic hash) and skip writing the
+                            // entire embedded text to the log (which can be large).
+                            Debug.Assert(document.IsComputedChecksum);
+                            Debug.Assert(!info.Checksum.IsDefault);
+
+                            // We do, however, log the first 4 bytes which encode formatting that is not
+                            // included in the checksum.
+                            _callLogger.LogArgument(info.EmbeddedTextBlob[0]);
+                            _callLogger.LogArgument(info.EmbeddedTextBlob[1]);
+                            _callLogger.LogArgument(info.EmbeddedTextBlob[2]);
+                            _callLogger.LogArgument(info.EmbeddedTextBlob[3]);
                         }
                     }
                     catch (Exception ex)
@@ -1487,6 +1521,22 @@ namespace Microsoft.Cci
                         throw new PdbWritingException(ex);
                     }
                 }
+            }
+        }
+
+        /// <summary>
+        /// Write document entries for any embedded text document that does not yet have an entry.
+        /// </summary>
+        /// <remarks>
+        /// This is done after serializing method debug info to ensure that we embed all requested
+        /// text even if there are no correspodning sequence points.
+        /// </remarks>
+        public void WriteRemainingEmbeddedDocuments(IEnumerable<DebugSourceDocument> embeddedDocuments)
+        {
+            foreach (var document in embeddedDocuments)
+            {
+                Debug.Assert(!document.GetSourceInfo().EmbeddedTextBlob.IsDefault);
+                GetDocumentWriter(document);
             }
         }
 

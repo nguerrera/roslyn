@@ -11,8 +11,10 @@ using System.Reflection;
 using System.Text;
 using System.Threading;
 using Microsoft.CodeAnalysis.Diagnostics;
+using Microsoft.CodeAnalysis.Emit;
 using Microsoft.CodeAnalysis.Text;
 using Roslyn.Utilities;
+using Microsoft.CodeAnalysis.Collections;
 
 namespace Microsoft.CodeAnalysis
 {
@@ -30,6 +32,16 @@ namespace Microsoft.CodeAnalysis
         public CommandLineArguments Arguments { get; }
         public IAnalyzerAssemblyLoader AssemblyLoader { get; private set; }
         public abstract DiagnosticFormatter DiagnosticFormatter { get; }
+
+        /// <summary>
+        /// The set of source file paths that are in the set of embedded paths.
+        /// This is used to prevent reading source files that are embedded twice.
+        ///
+        /// It further prevents a race where the file we embed could have changed
+        /// since the time it was parsed.
+        /// </summary>
+        public ReadOnlyHashSet<string> EmbeddedSourcePaths { get; }
+
         private readonly HashSet<Diagnostic> _reportedDiagnostics = new HashSet<Diagnostic>();
 
         public abstract Compilation CreateCompilation(TextWriter consoleOutput, TouchedFileLogger touchedFilesLogger, ErrorLogger errorLoggerOpt);
@@ -56,6 +68,7 @@ namespace Microsoft.CodeAnalysis
             this.Arguments = parser.Parse(allArgs, baseDirectory, sdkDirectoryOpt, additionalReferenceDirectories);
             this.MessageProvider = parser.MessageProvider;
             this.AssemblyLoader = assemblyLoader;
+            this.EmbeddedSourcePaths = GetEmbedddedSourcePaths(Arguments);
 
             if (Arguments.ParseOptions.Features.ContainsKey("debug-determinism"))
             {
@@ -133,7 +146,7 @@ namespace Microsoft.CodeAnalysis
         internal SourceText ReadFileContent(CommandLineSourceFile file, IList<DiagnosticInfo> diagnostics)
         {
             string discarded;
-            return ReadFileContent(file, diagnostics, out discarded);
+            return TryReadFileContent(file, diagnostics, out discarded);
         }
 
         /// <summary>
@@ -143,18 +156,15 @@ namespace Microsoft.CodeAnalysis
         /// <param name="diagnostics">Storage for diagnostics.</param>
         /// <param name="normalizedFilePath">If given <paramref name="file"/> opens successfully, set to normalized absolute path of the file, null otherwise.</param>
         /// <returns>File content or null on failure.</returns>
-        internal SourceText ReadFileContent(CommandLineSourceFile file, IList<DiagnosticInfo> diagnostics, out string normalizedFilePath)
+        internal SourceText TryReadFileContent(CommandLineSourceFile file, IList<DiagnosticInfo> diagnostics, out string normalizedFilePath)
         {
             var filePath = file.Path;
             try
             {
-                // PERF: Using a very small buffer size for the FileStream opens up an optimization within EncodedStringText where
-                // we read the entire FileStream into a byte array in one shot. For files that are actually smaller than the buffer
-                // size, FileStream.Read still allocates the internal buffer.
-                using (var data = PortableShim.FileStream.Create(filePath, PortableShim.FileMode.Open, PortableShim.FileAccess.Read, PortableShim.FileShare.ReadWrite, bufferSize: 1, options: PortableShim.FileOptions.None))
+                using (var data = OpenFileForReadWithSmallBufferOptimization(filePath))
                 {
                     normalizedFilePath = (string)PortableShim.FileStream.Name.GetValue(data);
-                    return EncodedStringText.Create(data, Arguments.Encoding, Arguments.ChecksumAlgorithm);
+                    return EncodedStringText.Create(data, Arguments.Encoding, Arguments.ChecksumAlgorithm, canBeEmbedded: EmbeddedSourcePaths.Contains(file.Path));
                 }
             }
             catch (Exception e)
@@ -163,6 +173,134 @@ namespace Microsoft.CodeAnalysis
                 normalizedFilePath = null;
                 return null;
             }
+        }
+
+        private static Stream OpenFileForReadWithSmallBufferOptimization(string filePath)
+        {
+            // PERF: Using a very small buffer size for the FileStream opens up an optimization within EncodedStringText/EmbeddedText where
+            // we read the entire FileStream into a byte array in one shot. For files that are actually smaller than the buffer
+            // size, FileStream.Read still allocates the internal buffer.
+            return PortableShim.FileStream.Create(
+                filePath,
+                PortableShim.FileMode.Open, 
+                PortableShim.FileAccess.Read,
+                PortableShim.FileShare.ReadWrite,
+                bufferSize: 1,
+                options: PortableShim.FileOptions.None);
+        }
+
+        internal EmbeddedText TryReadEmbeddedFileContent(string filePath, IList<DiagnosticInfo> diagnostics)
+        {
+            try
+            {
+                using (var stream = OpenFileForReadWithSmallBufferOptimization(filePath))
+                {
+                    const int LargeObjectHeapLimit = 80 * 1024;
+                    if (stream.Length < LargeObjectHeapLimit)
+                    {
+                        byte[] buffer = EncodedStringText.TryGetByteArrayFromStream(stream);
+                        if (buffer != null)
+                        {
+                            return EmbeddedText.FromBytes(filePath, new ArraySegment<byte>(buffer, 0, (int)stream.Length), Arguments.ChecksumAlgorithm);
+                        }
+                    }
+
+                    return EmbeddedText.FromStream(filePath, stream, Arguments.ChecksumAlgorithm);
+                }
+            }
+            catch (Exception e)
+            {
+                diagnostics.Add(ToFileReadDiagnostics(this.MessageProvider, e, filePath));
+                return null;
+            }
+        }
+
+        private ImmutableArray<EmbeddedText> AcquireEmbeddedTexts(Compilation compilation, IList<DiagnosticInfo> diagnostics)
+        {
+            if (Arguments.EmbeddedFiles.IsDefaultOrEmpty) 
+            {
+                return ImmutableArray<EmbeddedText>.Empty;
+            }
+
+            var embeddedTreeMap = new Dictionary<string, SyntaxTree>(Arguments.EmbeddedFiles.Length);
+            var embeddedFileOrderedSet = new OrderedSet<string>(Arguments.EmbeddedFiles.Select(e => e.Path));
+
+            foreach (var tree in compilation.SyntaxTrees)
+            {
+                // Skip trees that will not have their text embedded.
+                if (!EmbeddedSourcePaths.Contains(tree.FilePath))
+                {
+                    continue;
+                }
+
+                // Skip trees with duplicated paths. (VB allows this and "first one wins" is same as PDB emit policy.).
+                if (embeddedTreeMap.ContainsKey(tree.FilePath))
+                {
+                    continue;
+                }
+
+                // map embedded file path to corresponding source tree
+                embeddedTreeMap.Add(tree.FilePath, tree);
+
+                // also embed the text of any #line directive targets of embedded tree
+                string previousMappedPathOpt = null; // optimize for common consecutive repetition
+                foreach (var entry in tree.GetLineDirectiveMap().Entries)
+                {
+                    if (entry.MappedPathOpt != previousMappedPathOpt && entry.MappedPathOpt != null)
+                    {
+                        string resolvedPath = FileUtilities.NormalizeRelativePath(
+                            entry.MappedPathOpt, 
+                            tree.FilePath,
+                            Arguments.BaseDirectory);
+
+                        embeddedFileOrderedSet.Add(resolvedPath);
+                        previousMappedPathOpt = entry.MappedPathOpt;
+                    }
+                }
+            }
+
+            var embeddedTextBuilder = ImmutableArray.CreateBuilder<EmbeddedText>(embeddedFileOrderedSet.Count);
+            foreach (var path in embeddedFileOrderedSet)
+            {
+                SyntaxTree tree;
+                EmbeddedText text;
+
+                if (embeddedTreeMap.TryGetValue(path, out tree))
+                {
+                    text = EmbeddedText.FromSource(path, tree.GetText());
+                    Debug.Assert(text != null);
+                }
+                else
+                {
+                    text = TryReadEmbeddedFileContent(path, diagnostics);
+                    Debug.Assert(text != null || diagnostics.Any(d => d.Severity == DiagnosticSeverity.Error));
+                }
+
+                // We can safely add nulls because result will be ignored if any error is produced.
+                // This allows the MoveToImmutable to work below in all cases.
+                embeddedTextBuilder.Add(text);
+            }
+
+            return embeddedTextBuilder.MoveToImmutable();
+        }
+
+        private static ReadOnlyHashSet<string> GetEmbedddedSourcePaths(CommandLineArguments arguments)
+        {
+            if (arguments.EmbeddedFiles.IsDefaultOrEmpty)
+            {
+                return ReadOnlyHashSet<string>.Empty;
+            }
+
+            // The set of normalized absolute paths to source files that are also embedded files
+            var embedSet = new ReadOnlyHashSet<string>(
+                from file in arguments.EmbeddedFiles
+                select FileUtilities.NormalizeAbsolutePath(file.Path));
+
+            // The set of source files with their original absolute paths that are to be embedded.
+            return new ReadOnlyHashSet<string>(
+                from file in arguments.SourceFiles
+                where embedSet.Contains(FileUtilities.NormalizeAbsolutePath(file.Path))
+                select file.Path);
         }
 
         internal static DiagnosticInfo ToFileReadDiagnostics(CommonMessageProvider messageProvider, Exception e, string filePath)
@@ -361,6 +499,7 @@ namespace Microsoft.CodeAnalysis
             var diagnostics = new List<DiagnosticInfo>();
             ImmutableArray<DiagnosticAnalyzer> analyzers = ResolveAnalyzersFromArguments(diagnostics, MessageProvider);
             var additionalTextFiles = ResolveAdditionalFilesFromArguments(diagnostics, MessageProvider, touchedFilesLogger);
+            ImmutableArray<EmbeddedText> embeddedTexts = AcquireEmbeddedTexts(compilation, diagnostics);
             if (ReportErrors(diagnostics, consoleOutput, errorLogger))
             {
                 return Failed;
@@ -432,6 +571,7 @@ namespace Microsoft.CodeAnalysis
                         Arguments.ManifestResources,
                         emitOptions,
                         debugEntryPoint: null,
+                        embeddedTexts: embeddedTexts,
                         testData: null,
                         cancellationToken: cancellationToken);
 

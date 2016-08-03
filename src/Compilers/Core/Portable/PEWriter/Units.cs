@@ -212,6 +212,11 @@ namespace Microsoft.Cci
         /// Used to determine capacities of lists and indices when emitting debug info.
         /// </summary>
         int DebugDocumentCount { get; }
+
+        /// <summary>
+        /// Documents that will have their text embedded in the PDB.
+        /// </summary>
+        IEnumerable<Cci.DebugSourceDocument> EmbeddedDocuments { get; }
     }
 
     internal struct DefinitionWithLocation

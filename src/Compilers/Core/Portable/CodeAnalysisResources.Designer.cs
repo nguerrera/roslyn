@@ -1100,6 +1100,15 @@ namespace Microsoft.CodeAnalysis {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to SourceText must have been created with canBeEmbedded=true to be embedded..
+        /// </summary>
+        internal static string SourceTextCannotBeEmbedded {
+            get {
+                return ResourceManager.GetString("SourceTextCannotBeEmbedded", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to The span does not include the end of a line..
         /// </summary>
         internal static string SpanDoesNotIncludeEndOfLine {
@@ -1123,6 +1132,15 @@ namespace Microsoft.CodeAnalysis {
         internal static string StartMustNotBeNegative {
             get {
                 return ResourceManager.GetString("StartMustNotBeNegative", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Stream is too long..
+        /// </summary>
+        internal static string StreamIsTooLong {
+            get {
+                return ResourceManager.GetString("StreamIsTooLong", resourceCulture);
             }
         }
         

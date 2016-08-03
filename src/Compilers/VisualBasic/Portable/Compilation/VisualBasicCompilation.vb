@@ -2110,6 +2110,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         Friend Overrides Function CreateModuleBuilder(
             emitOptions As EmitOptions,
             debugEntryPoint As IMethodSymbol,
+            embeddedTexts As IEnumerable(Of EmbeddedText),
             manifestResources As IEnumerable(Of ResourceDescription),
             testData As CompilationTestData,
             diagnostics As DiagnosticBag,
@@ -2118,6 +2119,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Return CreateModuleBuilder(
                 emitOptions,
                 debugEntryPoint,
+                embeddedTexts,
                 manifestResources,
                 testData,
                 diagnostics,
@@ -2128,6 +2130,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         Friend Overloads Function CreateModuleBuilder(
             emitOptions As EmitOptions,
             debugEntryPoint As IMethodSymbol,
+            embeddedTexts As IEnumerable(Of EmbeddedText),
             manifestResources As IEnumerable(Of ResourceDescription),
             testData As CompilationTestData,
             diagnostics As DiagnosticBag,
@@ -2382,9 +2385,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                         Continue For
                     End If
 
-                    If CheckSumMatches(checkSumText, existingDoc.ChecksumAndAlgorithm.Item1) Then
+                    Dim sourceInfo = existingDoc.GetSourceInfo()
+
+                    If CheckSumMatches(checkSumText, sourceInfo.Checksum) Then
                         Dim guid As Guid = Guid.Parse(checksumDirective.Guid.ValueText)
-                        If guid = existingDoc.ChecksumAndAlgorithm.Item2 Then
+                        If guid = sourceInfo.ChecksumAlgorithmId Then
                             ' all parts match, nothing to do
                             Continue For
                         End If
@@ -2439,7 +2444,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         End Function
 
         Private Shared Function MakeDebugSourceDocumentForTree(normalizedPath As String, tree As SyntaxTree) As DebugSourceDocument
-            Return New DebugSourceDocument(normalizedPath, DebugSourceDocument.CorSymLanguageTypeBasic, Function() tree.GetChecksumAndAlgorithm())
+            Return New DebugSourceDocument(normalizedPath, DebugSourceDocument.CorSymLanguageTypeBasic, Function() tree.GetDebugSourceInfo())
         End Function
 
         Private Sub SetupWin32Resources(moduleBeingBuilt As PEModuleBuilder, win32Resources As Stream, diagnostics As DiagnosticBag)

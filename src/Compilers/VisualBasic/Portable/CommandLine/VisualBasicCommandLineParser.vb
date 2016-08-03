@@ -1133,7 +1133,7 @@ lVbRuntimePlus:
                                 Continue For
                             End If
 
-                            additionalFiles.AddRange(ParseAdditionalFileArgument(value, baseDirectory, diagnostics))
+                            additionalFiles.AddRange(ParseSeparatedFileArgument(value, baseDirectory, diagnostics))
                             Continue For
                     End Select
                 End If

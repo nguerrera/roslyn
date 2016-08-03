@@ -1491,6 +1491,7 @@ namespace Microsoft.CodeAnalysis
         internal abstract CommonPEModuleBuilder CreateModuleBuilder(
             EmitOptions emitOptions,
             IMethodSymbol debugEntryPoint,
+            IEnumerable<EmbeddedText> embeddedTexts,
             IEnumerable<ResourceDescription> manifestResources,
             CompilationTestData testData,
             DiagnosticBag diagnostics,
@@ -1572,6 +1573,7 @@ namespace Microsoft.CodeAnalysis
                     var moduleBeingBuilt = this.CreateModuleBuilder(
                         emitOptions: EmitOptions.Default,
                         debugEntryPoint: null,
+                        embeddedTexts: null,
                         manifestResources: null,
                         testData: null,
                         diagnostics: discardedDiagnostics,
@@ -1598,17 +1600,7 @@ namespace Microsoft.CodeAnalysis
             }
         }
 
-        /// <summary>
-        /// Emit the IL for the compiled source code into the specified stream.
-        /// </summary>
-        /// <param name="peStream">Stream to which the compilation will be written.</param>
-        /// <param name="pdbStream">Stream to which the compilation's debug info will be written.  Null to forego PDB generation.</param>
-        /// <param name="xmlDocumentationStream">Stream to which the compilation's XML documentation will be written.  Null to forego XML generation.</param>
-        /// <param name="win32Resources">Stream from which the compilation's Win32 resources will be read (in RES format).  
-        /// Null to indicate that there are none. The RES format begins with a null resource entry.</param>
-        /// <param name="manifestResources">List of the compilation's managed resources.  Null to indicate that there are none.</param>
-        /// <param name="options">Emit options.</param>
-        /// <param name="cancellationToken">To cancel the emit process.</param>
+        // 1.0 BACKCOMPAT OVERLOAD -- DO NOT TOUCH
         [EditorBrowsable(EditorBrowsableState.Never)]
         public EmitResult Emit(
             Stream peStream,
@@ -1626,6 +1618,31 @@ namespace Microsoft.CodeAnalysis
                 win32Resources,
                 manifestResources,
                 options,
+                null,
+                null,
+                cancellationToken);
+        }
+
+        // 1.3 BACKCOMPAT OVERLOAD -- DO NOT TOUCH
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public EmitResult Emit(
+            Stream peStream,
+            Stream pdbStream,
+            Stream xmlDocumentationStream,
+            Stream win32Resources,
+            IEnumerable<ResourceDescription> manifestResources,
+            EmitOptions options,
+            IMethodSymbol debugEntryPoint,
+            CancellationToken cancellationToken)
+        {
+            return Emit(
+                peStream,
+                pdbStream,
+                xmlDocumentationStream,
+                win32Resources,
+                manifestResources,
+                options,
+                debugEntryPoint,
                 null,
                 cancellationToken);
         }
@@ -1655,6 +1672,7 @@ namespace Microsoft.CodeAnalysis
         /// Unlike ordinary entry-point which is limited to a non-generic static method of specific signature, there are no restrictions on the <paramref name="debugEntryPoint"/> 
         /// method other than having a method body (extern, interface, or abstract methods are not allowed).
         /// </param>
+        /// <param name="embeddedTexts">The texts to embed in the PDB.</param>
         /// <param name="cancellationToken">To cancel the emit process.</param>
         public EmitResult Emit(
             Stream peStream,
@@ -1664,6 +1682,7 @@ namespace Microsoft.CodeAnalysis
             IEnumerable<ResourceDescription> manifestResources = null,
             EmitOptions options = null,
             IMethodSymbol debugEntryPoint = null,
+            IEnumerable<EmbeddedText> embeddedTexts = null,
             CancellationToken cancellationToken = default(CancellationToken))
         {
             if (peStream == null)
@@ -1697,6 +1716,7 @@ namespace Microsoft.CodeAnalysis
                 manifestResources,
                 options,
                 debugEntryPoint,
+                embeddedTexts,
                 testData: null,
                 cancellationToken: cancellationToken);
         }
@@ -1713,6 +1733,7 @@ namespace Microsoft.CodeAnalysis
             IEnumerable<ResourceDescription> manifestResources,
             EmitOptions options,
             IMethodSymbol debugEntryPoint,
+            IEnumerable<EmbeddedText> embeddedTexts,
             CompilationTestData testData,
             CancellationToken cancellationToken)
         {
@@ -1726,6 +1747,7 @@ namespace Microsoft.CodeAnalysis
                 manifestResources,
                 options,
                 debugEntryPoint,
+                embeddedTexts,
                 testData,
                 cancellationToken);
 
@@ -1873,6 +1895,7 @@ namespace Microsoft.CodeAnalysis
             IEnumerable<ResourceDescription> manifestResources,
             EmitOptions options,
             IMethodSymbol debugEntryPoint,
+            IEnumerable<EmbeddedText> embeddedTexts,
             CompilationTestData testData,
             CancellationToken cancellationToken)
         {
@@ -1919,6 +1942,7 @@ namespace Microsoft.CodeAnalysis
             return this.CreateModuleBuilder(
                 options,
                 debugEntryPoint,
+                embeddedTexts,
                 manifestResources,
                 testData,
                 diagnostics,

@@ -85,7 +85,9 @@ namespace Microsoft.CodeAnalysis.CSharp
             List<ResourceDescription> managedResources = new List<ResourceDescription>();
             List<CommandLineSourceFile> sourceFiles = new List<CommandLineSourceFile>();
             List<CommandLineSourceFile> additionalFiles = new List<CommandLineSourceFile>();
+            List<CommandLineSourceFile> embeddedFiles = new List<CommandLineSourceFile>();
             bool sourceFilesSpecified = false;
+            bool embedAllSourceFiles = false;
             bool resourcesOrModulesSpecified = false;
             Encoding codepage = null;
             var checksumAlgorithm = SourceHashAlgorithm.Sha1;
@@ -1084,7 +1086,17 @@ namespace Microsoft.CodeAnalysis.CSharp
                                 continue;
                             }
 
-                            additionalFiles.AddRange(ParseAdditionalFileArgument(value, baseDirectory, diagnostics));
+                            additionalFiles.AddRange(ParseSeparatedFileArgument(value, baseDirectory, diagnostics));
+                            continue;
+
+                        case "embed":
+                            if (string.IsNullOrEmpty(value))
+                            {
+                                embedAllSourceFiles = true;
+                                continue;
+                            }
+                            
+                            embeddedFiles.AddRange(ParseSeparatedFileArgument(value, baseDirectory, diagnostics));
                             continue;
                     }
                 }
@@ -1194,6 +1206,16 @@ namespace Microsoft.CodeAnalysis.CSharp
                 options = options.WithDebugPlusMode(debugPlus);
             }
 
+            if (embedAllSourceFiles)
+            {
+                embeddedFiles.AddRange(sourceFiles);
+            }
+
+            if (embeddedFiles.Count > 0 && !emitPdb)
+            {
+                AddDiagnostic(diagnostics, ErrorCode.ERR_CannotEmbedWithoutPdb);
+            }
+
             var emitOptions = new EmitOptions
             (
                 metadataOnly: false,
@@ -1251,7 +1273,8 @@ namespace Microsoft.CodeAnalysis.CSharp
                 PrintFullPaths = printFullPaths,
                 ShouldIncludeErrorEndLocation = errorEndLocation,
                 PreferredUILang = preferredUILang,
-                ReportAnalyzer = reportAnalyzer
+                ReportAnalyzer = reportAnalyzer,
+                EmbeddedFiles = embeddedFiles.AsImmutable()
             };
         }
 

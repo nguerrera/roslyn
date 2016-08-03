@@ -2321,6 +2321,24 @@ namespace Microsoft.CodeAnalysis.CSharp {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to /embed specified without /debug. Cannot embed file in PDB as no PDB will be written..
+        /// </summary>
+        internal static string ERR_CannotEmbedWithoutPdb {
+            get {
+                return ResourceManager.GetString("ERR_CannotEmbedWithoutPdb", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to /embed specified without /debug..
+        /// </summary>
+        internal static string ERR_CannotEmbedWithoutPdb_Title {
+            get {
+                return ResourceManager.GetString("ERR_CannotEmbedWithoutPdb_Title", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Cannot pass null for friend assembly name.
         /// </summary>
         internal static string ERR_CannotPassNullForFriendAssembly {

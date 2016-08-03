@@ -531,4 +531,10 @@
   <data name="IOperationFeatureDisabled" xml:space="preserve">
     <value>Feature 'IOperation' is disabled.</value>
   </data>
+  <data name="SourceTextCannotBeEmbedded" xml:space="preserve">
+    <value>SourceText cannot be embedded. Provide encoding or canBeEmbedded=true at construction.</value>
+  </data>
+  <data name="StreamIsTooLong" xml:space="preserve">
+    <value>Stream is too long.</value>
+  </data>
 </root>

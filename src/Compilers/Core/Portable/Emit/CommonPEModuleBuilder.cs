@@ -10,6 +10,7 @@ using System.Threading;
 using Microsoft.CodeAnalysis.CodeGen;
 using Microsoft.CodeAnalysis.Emit.NoPia;
 using Roslyn.Utilities;
+using Microsoft.CodeAnalysis.Text;
 
 namespace Microsoft.CodeAnalysis.Emit
 {
@@ -77,6 +78,9 @@ namespace Microsoft.CodeAnalysis.Emit
         // NOTE: We are not considering how filesystem or debuggers do the comparisons, but how native implementations did.
         // Deviating from that may result in unexpected warnings or different behavior (possibly without warnings).
         private readonly ConcurrentDictionary<string, Cci.DebugSourceDocument> _debugDocuments;
+
+        internal IEnumerable<EmbeddedText> EmbeddedTextsOpt { get; set; }
+        internal IEnumerable<Cci.DebugSourceDocument> EmbeddedDocumentsOpt { set; private get; }
 
         public abstract TEmbeddedTypesManager EmbeddedTypesManagerOpt { get; }
 
@@ -914,6 +918,14 @@ namespace Microsoft.CodeAnalysis.Emit
         }
 
         int Cci.IModule.DebugDocumentCount => _debugDocuments.Count;
+
+        IEnumerable<Cci.DebugSourceDocument> Cci.IModule.EmbeddedDocuments
+        {
+            get
+            {
+                return this.EmbeddedDocumentsOpt ?? SpecializedCollections.EmptyEnumerable<Cci.DebugSourceDocument>();
+            }
+        }
 
         #endregion
 
