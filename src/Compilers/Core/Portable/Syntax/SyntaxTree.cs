@@ -210,9 +210,6 @@ namespace Microsoft.CodeAnalysis
         /// </returns>
         public abstract FileLinePositionSpan GetMappedLineSpan(TextSpan span, CancellationToken cancellationToken = default(CancellationToken));
 
-
-        internal abstract LineDirectiveMap GetLineDirectiveMap();
-
         /// <summary>
         /// Returns the visibility for the line at the given position.
         /// </summary>
@@ -236,6 +233,17 @@ namespace Microsoft.CodeAnalysis
         {
             isHiddenPosition = GetLineVisibility(span.Start) == LineVisibility.Hidden;
             return GetMappedLineSpan(span);
+        }
+
+        /// <summary>
+        /// Gets the underlying <see cref="LineDirectiveMap"/> that backs GetMapped* operations.
+        /// </summary>
+        internal virtual LineDirectiveMap GetLineDirectiveMap()
+        {
+            // This is overridden by C# and VB, but SyntaxTree has visible constructor and we
+            // therefore cannot add new abstract members.
+            Debug.Assert(false); 
+            throw new NotImplementedException();
         }
 
         /// <summary>

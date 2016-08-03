@@ -40,7 +40,7 @@ namespace Microsoft.CodeAnalysis
         /// It further prevents a race where the file we embed could have changed
         /// since the time it was parsed.
         /// </summary>
-        protected IReadOnlySet<string> EmbeddedSourcePaths { get; }
+        public IReadOnlySet<string> EmbeddedSourcePaths { get; }
 
         private readonly HashSet<Diagnostic> _reportedDiagnostics = new HashSet<Diagnostic>();
 
@@ -233,19 +233,20 @@ namespace Microsoft.CodeAnalysis
                     continue;
                 }
 
-                // skip trees with duplicated paths (VB allows this)
+                // skip trees with duplicated paths (VB allows this).
                 if (embeddedTreeMap.ContainsKey(tree.FilePath))
                 {
                     continue;
                 }
 
-                // map embedded file path to corresponding source tree.
+                // map embedded file path to corresponding source tree
                 embeddedTreeMap.Add(tree.FilePath, tree);
 
-                // also embed the text of any #line directive targets of embedded tree.
+                // also embed the text of any #line directive targets of embedded tree
+                string previousMappedPathOpt = null; // optimize for common consecutive repetition
                 foreach (var entry in tree.GetLineDirectiveMap().Entries)
                 {
-                    if (entry.MappedPathOpt != null)
+                    if (entry.MappedPathOpt != previousMappedPathOpt && entry.MappedPathOpt != null)
                     {
                         string resolvedPath = FileUtilities.NormalizeRelativePath(
                             entry.MappedPathOpt, 
@@ -253,6 +254,7 @@ namespace Microsoft.CodeAnalysis
                             Arguments.BaseDirectory);
 
                         embeddedFileOrderedSet.Add(resolvedPath);
+                        previousMappedPathOpt = entry.MappedPathOpt;
                     }
                 }
             }
@@ -266,32 +268,35 @@ namespace Microsoft.CodeAnalysis
                 if (embeddedTreeMap.TryGetValue(path, out tree))
                 {
                     text = EmbeddedText.FromSource(path, tree.GetText());
+                    Debug.Assert(text != null);
                 }
                 else
                 {
                     text = TryReadEmbeddedFileContent(path, diagnostics);
+                    Debug.Assert(text != null || diagnostics.Any(d => d.Severity == DiagnosticSeverity.Error));
                 }
 
-                if (text != null)
-                {
-                    embeddedTextBuilder.Add(text);
-                }
+                // we can safely add nulls because result will be ignored if any error is produced.
+                // This allows the MoveToImmutable to work below in all cases.
+                embeddedTextBuilder.Add(text);
             }
 
-            return embeddedTextBuilder.ToImmutableArray();
+            return embeddedTextBuilder.MoveToImmutable();
         }
 
         private static ReadOnlyHashSet<string> GetEmbedddedSourcePaths(CommandLineArguments arguments)
         {
-            if (arguments.EmbeddedFiles.IsEmpty)
+            if (arguments.EmbeddedFiles.IsDefaultOrEmpty)
             {
                 return ReadOnlyHashSet<string>.Empty;
             }
 
+            // The set of normalized absolute paths to source files that are also embedded files
             var embedSet = new ReadOnlyHashSet<string>(
                 from file in arguments.EmbeddedFiles
                 select FileUtilities.NormalizeAbsolutePath(file.Path));
 
+            // The set of source files with their original absolute paths that are to be embedded.
             return new ReadOnlyHashSet<string>(
                 from file in arguments.SourceFiles
                 where embedSet.Contains(FileUtilities.NormalizeAbsolutePath(file.Path))
