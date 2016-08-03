@@ -126,7 +126,6 @@ namespace Microsoft.CodeAnalysis
         /// <exception cref="ArgumentException">
         /// <paramref name="filePath" /> is empty.
         /// <paramref name="stream"/> doesn't support reading or seeking.
-        /// <paramref name="stream" /> is longer than <see cref="Int32.MaxValue" /> bytes.
         /// <paramref name="checksumAlgorithm"/> is not supported.
         /// </exception>
         /// <exception cref="IOException">An I/O error occurs.</exception>
@@ -210,8 +209,7 @@ namespace Microsoft.CodeAnalysis
         {
             Debug.Assert(stream != null);
             Debug.Assert(stream.CanRead);
-            Debug.Assert(stream.CanSeek); ;
-            Debug.Assert(stream.Length <= int.MaxValue);
+            Debug.Assert(stream.CanSeek);
 
             long longLength = stream.Length;
             Debug.Assert(longLength >= 0);
@@ -309,7 +307,7 @@ namespace Microsoft.CodeAnalysis
                 {
                     builder.WriteInt32(0);
 
-                    using (var writer = new StreamWriter(builder, text.Encoding, bufferSize: text.Length, leaveOpen: true))
+                    using (var writer = new StreamWriter(builder, text.Encoding, bufferSize: Math.Max(1, text.Length), leaveOpen: true))
                     {
                         text.Write(writer);
                     }
