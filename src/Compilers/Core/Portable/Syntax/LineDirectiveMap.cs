@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.Linq;
 using Microsoft.CodeAnalysis.Text;
 using Roslyn.Utilities;
+using System.Collections.Immutable;
 
 namespace Microsoft.CodeAnalysis
 {
@@ -16,10 +17,15 @@ namespace Microsoft.CodeAnalysis
     /// directives, then the array has just one element in it. To map line numbers, a binary search
     /// of the mapping entries is done and nearest line mapping is applied.
     /// </summary>
-    internal abstract partial class LineDirectiveMap<TDirective>
+    internal abstract partial class LineDirectiveMap
+    {
+        public ImmutableArray<LineMappingEntry> Entries { get; protected set; }
+    }
+
+    internal abstract partial class LineDirectiveMap<TDirective> : LineDirectiveMap
         where TDirective : SyntaxNode
     {
-        protected readonly LineMappingEntry[] Entries;
+        private static ImmutableArray<LineMappingEntry> s_lazyNullEntries;
 
         // Get all active #line directives under trivia into the list, in source code order.
         protected abstract bool ShouldAddDirective(TDirective directive);
@@ -27,7 +33,7 @@ namespace Microsoft.CodeAnalysis
         // Given a directive and the previous entry, create a new entry.
         protected abstract LineMappingEntry GetEntry(TDirective directive, SourceText sourceText, LineMappingEntry previous);
 
-        // Creates the first entry with language specific content
+        // Creates the first entry with language specific content (must produce constant value)
         protected abstract LineMappingEntry InitializeFirstEntry();
 
         protected LineDirectiveMap(SyntaxTree syntaxTree)
@@ -96,35 +102,45 @@ namespace Microsoft.CodeAnalysis
         // Find the index of the line mapped entry with the largest unmapped line number <= lineNumber.
         protected int FindEntryIndex(int lineNumber)
         {
-            int r = Array.BinarySearch(this.Entries, new LineMappingEntry(lineNumber));
+            int r = this.Entries.BinarySearch(new LineMappingEntry(lineNumber), LineMappingEntry.UnmappedLineComparer);
             return r >= 0 ? r : ((~r) - 1);
         }
 
         // Given the ordered list of all directives in the file, return the ordered line mapping
         // entry for the file. This always starts with the null mapped that maps line 0 to line 0.
-        private LineMappingEntry[] CreateEntryMap(SourceText sourceText, IEnumerable<TDirective> directives)
+        private ImmutableArray<LineMappingEntry> CreateEntryMap(SourceText sourceText, IEnumerable<TDirective> directives)
         {
-            var entries = new LineMappingEntry[directives.Count() + 1];
+            int count = directives.Count();
+            if (count == 0)
+            {
+                if (s_lazyNullEntries == null)
+                {
+                    s_lazyNullEntries = ImmutableArray.Create(InitializeFirstEntry());
+                }
+
+                Debug.Assert(s_lazyNullEntries.Length == 1 && s_lazyNullEntries[0] == InitializeFirstEntry());
+                return s_lazyNullEntries;
+            }
+
+            var entries = ImmutableArray.CreateBuilder<LineMappingEntry>(count + 1);
             var current = InitializeFirstEntry();
-            var index = 0;
-            entries[index] = current;
+            entries.Add(current);
 
             foreach (var directive in directives)
             {
                 current = GetEntry(directive, sourceText, current);
-                ++index;
-                entries[index] = current;
+                entries.Add(current);
             }
 
 #if DEBUG
             // Make sure the entries array is correctly sorted. 
-            for (int i = 0; i < entries.Length - 1; ++i)
+            for (int i = 0; i < entries.Count - 1; ++i)
             {
-                Debug.Assert(entries[i].CompareTo(entries[i + 1]) < 0);
+                Debug.Assert(LineMappingEntry.UnmappedLineComparer.Compare(entries[i], entries[i + 1]) < 0);
             }
 #endif
 
-            return entries;
+            return entries.MoveToImmutable();
         }
     }
 }

@@ -235,6 +235,17 @@ namespace Microsoft.CodeAnalysis
         }
 
         /// <summary>
+        /// Gets the underlying <see cref="LineDirectiveMap"/> that backs GetMapped* operations.
+        /// </summary>
+        internal virtual LineDirectiveMap GetLineDirectiveMap()
+        {
+            // This is overridden by C# and VB, but SyntaxTree has visible constructor and we
+            // therefore cannot add new abstract members.
+            Debug.Assert(false); 
+            throw new NotImplementedException();
+        }
+
+        /// <summary>
         /// Returns a path for particular location in source that is presented to the user. 
         /// </summary>
         /// <remarks>

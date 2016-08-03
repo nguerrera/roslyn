@@ -2,10 +2,12 @@
 
 using System;
 using Microsoft.CodeAnalysis.Text;
+using Roslyn.Utilities;
+using System.Collections.Generic;
 
 namespace Microsoft.CodeAnalysis
 {
-    internal partial class LineDirectiveMap<TDirective>
+    internal partial class LineDirectiveMap
     {
         /// <summary>
         /// Enum that describes the state related to the #line or #externalsource directives at a position in source.
@@ -47,8 +49,10 @@ namespace Microsoft.CodeAnalysis
 
         // Struct that represents an entry in the line mapping table. Entries sort by the unmapped
         // line.
-        protected struct LineMappingEntry : IComparable<LineMappingEntry>
+        public struct LineMappingEntry : IEquatable<LineMappingEntry>
         {
+            public static readonly IComparer<LineMappingEntry> UnmappedLineComparer = new UnmappedLineComparerImplementation(); 
+
             // 0-based line in this tree
             public readonly int UnmappedLine;
 
@@ -81,9 +85,40 @@ namespace Microsoft.CodeAnalysis
                 this.State = state;
             }
 
-            public int CompareTo(LineMappingEntry other)
+            public override bool Equals(object obj)
             {
-                return this.UnmappedLine.CompareTo(other.UnmappedLine);
+                return obj is LineMappingEntry && Equals((LineMappingEntry)obj);
+            }
+
+            public static bool operator==(LineMappingEntry left, LineMappingEntry right)
+            {
+                return left.Equals(right);
+            }
+
+            public static bool operator !=(LineMappingEntry left, LineMappingEntry right)
+            {
+                return !left.Equals(right);
+            }
+
+            public bool Equals(LineMappingEntry other)
+            {
+                return UnmappedLine == other.UnmappedLine &&
+                    MappedLine == other.MappedLine &&
+                    MappedPathOpt == other.MappedPathOpt &&
+                    State == other.State;
+            }
+
+            public override int GetHashCode()
+            {
+                return Hash.Combine(UnmappedLine, Hash.Combine(MappedLine, Hash.Combine(MappedPathOpt, (int)State)));
+            }
+
+            private sealed class UnmappedLineComparerImplementation : IComparer<LineMappingEntry>
+            {
+                public int Compare(LineMappingEntry x, LineMappingEntry y)
+                {
+                    return x.UnmappedLine.CompareTo(y.UnmappedLine);
+                }
             }
         }
     }
