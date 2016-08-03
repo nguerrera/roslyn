@@ -20,6 +20,7 @@ namespace Microsoft.CodeAnalysis
     {
         private ImmutableArray<byte> _lazyChecksum;
         private SourceHashAlgorithm _lazyHashAlgorithm;
+        private LineDirectiveMap _lazyLineDirectiveMap;
 
         /// <summary>
         /// The path of the source document file.
@@ -208,6 +209,9 @@ namespace Microsoft.CodeAnalysis
         /// either specifies an explicit file path or is <code>#line default</code> exists and specifies an explicit path.
         /// </returns>
         public abstract FileLinePositionSpan GetMappedLineSpan(TextSpan span, CancellationToken cancellationToken = default(CancellationToken));
+
+
+        internal abstract LineDirectiveMap GetLineDirectiveMap();
 
         /// <summary>
         /// Returns the visibility for the line at the given position.

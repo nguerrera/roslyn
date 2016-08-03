@@ -553,6 +553,17 @@ namespace Microsoft.CodeAnalysis.CSharp
             return _lazyLineDirectiveMap.GetLineVisibility(this.GetText(cancellationToken), position);
         }
 
+        internal override LineDirectiveMap GetLineDirectiveMap()
+        {
+            if (_lazyLineDirectiveMap == null)
+            {
+                // Create the line directive map on demand.
+                Interlocked.CompareExchange(ref _lazyLineDirectiveMap, new CSharpLineDirectiveMap(this), null);
+            }
+
+            return _lazyLineDirectiveMap;
+        }
+
         /// <summary>
         /// Gets a <see cref="FileLinePositionSpan"/> for a <see cref="TextSpan"/>. FileLinePositionSpans are used
         /// primarily for diagnostics and source locations.

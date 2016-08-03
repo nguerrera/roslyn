@@ -14,6 +14,7 @@ using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Emit;
 using Microsoft.CodeAnalysis.Text;
 using Roslyn.Utilities;
+using Microsoft.CodeAnalysis.Collections;
 
 namespace Microsoft.CodeAnalysis
 {
@@ -160,7 +161,7 @@ namespace Microsoft.CodeAnalysis
             var filePath = file.Path;
             try
             {
-                using (var data = OpenFileWithSmallBufferOptimization(filePath))
+                using (var data = OpenFileForReadWithSmallBufferOptimization(filePath))
                 {
                     normalizedFilePath = (string)PortableShim.FileStream.Name.GetValue(data);
                     return EncodedStringText.Create(data, Arguments.Encoding, Arguments.ChecksumAlgorithm, canBeEmbedded: EmbeddedSourcePaths.Contains(file.Path));
@@ -174,9 +175,9 @@ namespace Microsoft.CodeAnalysis
             }
         }
 
-        private static Stream OpenFileWithSmallBufferOptimization(string filePath)
+        private static Stream OpenFileForReadWithSmallBufferOptimization(string filePath)
         {
-            // PERF: Using a very small buffer size for the FileStream opens up an optimization within EncodedStringText where
+            // PERF: Using a very small buffer size for the FileStream opens up an optimization within EncodedStringText/EmbeddedText where
             // we read the entire FileStream into a byte array in one shot. For files that are actually smaller than the buffer
             // size, FileStream.Read still allocates the internal buffer.
             return PortableShim.FileStream.Create(
@@ -188,13 +189,11 @@ namespace Microsoft.CodeAnalysis
                 options: PortableShim.FileOptions.None);
         }
 
-        internal EmbeddedText TryReadEmbeddedFileContent(CommandLineSourceFile file, IList<DiagnosticInfo> diagnostics)
+        internal EmbeddedText TryReadEmbeddedFileContent(string filePath, IList<DiagnosticInfo> diagnostics)
         {
-            var filePath = file.Path;
-
             try
             {
-                using (var stream = OpenFileWithSmallBufferOptimization(filePath))
+                using (var stream = OpenFileForReadWithSmallBufferOptimization(filePath))
                 {
                     const int LargeObjectHeapLimit = 80 * 1024;
                     if (stream.Length < LargeObjectHeapLimit)
@@ -202,63 +201,84 @@ namespace Microsoft.CodeAnalysis
                         byte[] buffer = EncodedStringText.TryGetByteArrayFromStream(stream);
                         if (buffer != null)
                         {
-                            return EmbeddedText.FromBytes(file.Path, new ArraySegment<byte>(buffer, 0, (int)stream.Length), Arguments.ChecksumAlgorithm);
+                            return EmbeddedText.FromBytes(filePath, new ArraySegment<byte>(buffer, 0, (int)stream.Length), Arguments.ChecksumAlgorithm);
                         }
                     }
 
-                    return EmbeddedText.FromStream(file.Path, stream, Arguments.ChecksumAlgorithm);
+                    return EmbeddedText.FromStream(filePath, stream, Arguments.ChecksumAlgorithm);
                 }
             }
             catch (Exception e)
             {
-                diagnostics.Add(ToFileReadDiagnostics(this.MessageProvider, e, file.Path));
+                diagnostics.Add(ToFileReadDiagnostics(this.MessageProvider, e, filePath));
                 return null;
             }
         }
 
         private ImmutableArray<EmbeddedText> AcquireEmbeddedTexts(Compilation compilation, IList<DiagnosticInfo> diagnostics)
         {
-            var embeddedFiles = Arguments.EmbeddedFiles;
-
-            if (embeddedFiles.IsDefaultOrEmpty) 
+            if (Arguments.EmbeddedFiles.IsDefaultOrEmpty) 
             {
                 return ImmutableArray<EmbeddedText>.Empty;
             }
 
-            var trees = new Dictionary<string, SyntaxTree>(EmbeddedSourcePaths.Count);
+            var embeddedTreeMap = new Dictionary<string, SyntaxTree>(Arguments.EmbeddedFiles.Length);
+            var embeddedFileOrderedSet = new OrderedSet<string>(Arguments.EmbeddedFiles.Select(e => e.Path));
+
             foreach (var tree in compilation.SyntaxTrees)
             {
-                // Note that VB allows multiple trees with same path. We let the first one wins which
-                // correpsonds to the policy applied when de-duping the debug document table for the
-                // PDB.
-                if (EmbeddedSourcePaths.Contains(tree.FilePath) && !trees.ContainsKey(tree.FilePath))
+                // skip trees that will not have their text embedded
+                if (!EmbeddedSourcePaths.Contains(tree.FilePath))
                 {
-                    trees.Add(tree.FilePath, tree);
+                    continue;
+                }
+
+                // skip trees with duplicated paths (VB allows this)
+                if (embeddedTreeMap.ContainsKey(tree.FilePath))
+                {
+                    continue;
+                }
+
+                // map embedded file path to corresponding source tree.
+                embeddedTreeMap.Add(tree.FilePath, tree);
+
+                // also embed the text of any #line directive targets of embedded tree.
+                foreach (var entry in tree.GetLineDirectiveMap().Entries)
+                {
+                    if (entry.MappedPathOpt != null)
+                    {
+                        string resolvedPath = FileUtilities.NormalizeRelativePath(
+                            entry.MappedPathOpt, 
+                            tree.FilePath,
+                            Arguments.BaseDirectory);
+
+                        embeddedFileOrderedSet.Add(resolvedPath);
+                    }
                 }
             }
 
-            var builder = ImmutableArray.CreateBuilder<EmbeddedText>(embeddedFiles.Length);
-            foreach (var file in embeddedFiles)
+            var embeddedTextBuilder = ImmutableArray.CreateBuilder<EmbeddedText>(embeddedFileOrderedSet.Count);
+            foreach (var path in embeddedFileOrderedSet)
             {
                 SyntaxTree tree;
                 EmbeddedText text;
 
-                if (trees.TryGetValue(file.Path, out tree))
+                if (embeddedTreeMap.TryGetValue(path, out tree))
                 {
-                    text = EmbeddedText.FromSource(file.Path, tree.GetText());
+                    text = EmbeddedText.FromSource(path, tree.GetText());
                 }
                 else
                 {
-                    text = TryReadEmbeddedFileContent(file, diagnostics);
+                    text = TryReadEmbeddedFileContent(path, diagnostics);
                 }
 
                 if (text != null)
                 {
-                    builder.Add(text);
+                    embeddedTextBuilder.Add(text);
                 }
             }
 
-            return builder.ToImmutable();
+            return embeddedTextBuilder.ToImmutableArray();
         }
 
         private static ReadOnlyHashSet<string> GetEmbedddedSourcePaths(CommandLineArguments arguments)
