@@ -11,6 +11,7 @@ using System.IO.Compression;
 using Roslyn.Test.Utilities;
 using System.Linq;
 using System.Collections.Immutable;
+using System.Reflection;
 
 namespace Microsoft.CodeAnalysis.UnitTests
 {
@@ -55,9 +56,12 @@ namespace Microsoft.CodeAnalysis.UnitTests
         public void FromStream_IOErrors()
         {
             Assert.Throws<IOException>(() => EmbeddedText.FromStream("path", new HugeStream()));
+            Assert.Throws<EndOfStreamException>(() => EmbeddedText.FromStream("path", new TruncatingStream(10)));
+            Assert.Throws<EndOfStreamException>(() => EmbeddedText.FromStream("path", new TruncatingStream(1000)));
 
-            // TODO: File bug (pre-eixsting) ComputeHash throws TargetInvocationException via reflection instead of unwrapping I/O exception.
-            //Assert.Throws<IOException>(() => EmbeddedText.FromStream("path", new ReadFailsStream()));
+            // Should be Assert.Throws<IOException>, but impeded by https://github.com/dotnet/roslyn/issues/12926
+            var ex = Assert.Throws<TargetInvocationException>(() => EmbeddedText.FromStream("path", new ReadFailsStream()));
+            Assert.IsType<IOException>(ex.InnerException);
         }
 
         private const string SmallSource = @"class P {}";
@@ -87,7 +91,7 @@ class Program
         {
             var text = EmbeddedText.FromStream("pathToEmpty", new MemoryStream(new byte[0]), SourceHashAlgorithm.Sha1);
             var checksum = SourceText.CalculateChecksum(new byte[0], 0, 0, SourceHashAlgorithm.Sha1);
-            
+
             Assert.Equal("pathToEmpty", text.FilePath);
             Assert.Equal(text.ChecksumAlgorithm, SourceHashAlgorithm.Sha1);
             AssertEx.Equal(checksum, text.Checksum);
@@ -95,7 +99,7 @@ class Program
         }
 
         [Fact]
-        public void FromText_Empty()
+        public void FromSource_Empty()
         {
             var source = SourceText.From("", new UTF8Encoding(encoderShouldEmitUTF8Identifier: false), SourceHashAlgorithm.Sha1);
             var text = EmbeddedText.FromSource("pathToEmpty", source);
@@ -122,20 +126,6 @@ class Program
         }
 
         [Fact]
-        public void FromBytes_Large()
-        {
-            var bytes = Encoding.Unicode.GetBytes(LargeSource);
-            var checksum = SourceText.CalculateChecksum(bytes, 0, bytes.Length, SourceHashAlgorithm.Sha256);
-            var text = EmbeddedText.FromBytes("pathToLarge", new ArraySegment<byte>(bytes, 0, bytes.Length), SourceHashAlgorithm.Sha256);
-
-            Assert.Equal("pathToLarge", text.FilePath);
-            Assert.Equal(SourceHashAlgorithm.Sha256, text.ChecksumAlgorithm);
-            AssertEx.Equal(checksum, text.Checksum);
-            AssertEx.Equal(ToInt32LE(bytes.Length), text.Blob.Take(4));
-            AssertEx.Equal(bytes, Decompress(text.Blob.Skip(4)));
-        }
-
-        [Fact]
         public void FromBytes_SmallSpan()
         {
             var bytes = Encoding.UTF8.GetBytes(SmallSource);
@@ -151,6 +141,33 @@ class Program
         }
 
         [Fact]
+        public void FromSource_Small()
+        {
+            var source = SourceText.From(SmallSource, Encoding.UTF8, SourceHashAlgorithm.Sha1);
+            var text = EmbeddedText.FromSource("pathToSmall", source);
+
+            Assert.Equal("pathToSmall", text.FilePath);
+            Assert.Equal(SourceHashAlgorithm.Sha1, text.ChecksumAlgorithm);
+            AssertEx.Equal(source.GetChecksum(), text.Checksum);
+            AssertEx.Equal(new byte[] { 0, 0, 0, 0 }, text.Blob.Take(4));
+            AssertEx.Equal(Encoding.UTF8.GetPreamble().Concat(Encoding.UTF8.GetBytes(SmallSource)), text.Blob.Skip(4));
+        }
+
+        [Fact]
+        public void FromBytes_Large()
+        {
+            var bytes = Encoding.Unicode.GetBytes(LargeSource);
+            var checksum = SourceText.CalculateChecksum(bytes, 0, bytes.Length, SourceHashAlgorithm.Sha256);
+            var text = EmbeddedText.FromBytes("pathToLarge", new ArraySegment<byte>(bytes, 0, bytes.Length), SourceHashAlgorithm.Sha256);
+
+            Assert.Equal("pathToLarge", text.FilePath);
+            Assert.Equal(SourceHashAlgorithm.Sha256, text.ChecksumAlgorithm);
+            AssertEx.Equal(checksum, text.Checksum);
+            AssertEx.Equal(BitConverter.GetBytes(bytes.Length), text.Blob.Take(4));
+            AssertEx.Equal(bytes, Decompress(text.Blob.Skip(4)));
+        }
+
+        [Fact]
         public void FromBytes_LargeSpan()
         {
             var bytes = Encoding.Unicode.GetBytes(LargeSource);
@@ -161,19 +178,43 @@ class Program
             Assert.Equal("pathToLarge", text.FilePath);
             AssertEx.Equal(checksum, text.Checksum);
             Assert.Equal(SourceHashAlgorithm.Sha256, text.ChecksumAlgorithm);
-            AssertEx.Equal(ToInt32LE(bytes.Length), text.Blob.Take(4));
+            AssertEx.Equal(BitConverter.GetBytes(bytes.Length), text.Blob.Take(4));
             AssertEx.Equal(bytes, Decompress(text.Blob.Skip(4)));
         }
 
-        private byte[] ToInt32LE(int length)
+        [Fact]
+        public void FromSource_Large()
         {
-            return new byte[]
+            var source = SourceText.From(LargeSource, Encoding.Unicode, SourceHashAlgorithm.Sha256);
+            var text = EmbeddedText.FromSource("pathToLarge", source);
+
+            Assert.Equal("pathToLarge", text.FilePath);
+            Assert.Equal(SourceHashAlgorithm.Sha256, text.ChecksumAlgorithm);
+            AssertEx.Equal(source.GetChecksum(), text.Checksum);
+            AssertEx.Equal(BitConverter.GetBytes(Encoding.Unicode.GetPreamble().Length + LargeSource.Length * sizeof(char)), text.Blob.Take(4));
+            AssertEx.Equal(Encoding.Unicode.GetPreamble().Concat(Encoding.Unicode.GetBytes(LargeSource)), Decompress(text.Blob.Skip(4)));
+        }
+
+        [Fact]
+        public void FromSource_Precomputed()
+        {
+            byte[] bytes = Encoding.ASCII.GetBytes(LargeSource);
+            bytes[0] = 0xFF; // invalid ASCII, should be reflected in checksum, blob.
+
+            foreach (bool useStream in new[] { true, false })
             {
-                (byte)((length >> 0) & 0xFF),
-                (byte)((length >> 8) & 0xFF),
-                (byte)((length >> 16) & 0xFF),
-                (byte)((length >> 24) & 0xFF),
-            };
+                var source = useStream ?
+                    SourceText.From(new MemoryStream(bytes), Encoding.ASCII, SourceHashAlgorithm.Sha1, canBeEmbedded: true) :
+                    SourceText.From(bytes, bytes.Length, Encoding.ASCII, SourceHashAlgorithm.Sha1, canBeEmbedded: true);
+
+                var text = EmbeddedText.FromSource("pathToPrecomputed", source);
+                Assert.Equal("pathToPrecomputed", text.FilePath);
+                Assert.Equal(SourceHashAlgorithm.Sha1, text.ChecksumAlgorithm);
+                AssertEx.Equal(SourceText.CalculateChecksum(bytes, 0, bytes.Length, SourceHashAlgorithm.Sha1), source.GetChecksum());
+                AssertEx.Equal(source.GetChecksum(), text.Checksum);
+                AssertEx.Equal(BitConverter.GetBytes(bytes.Length), text.Blob.Take(4));
+                AssertEx.Equal(bytes, Decompress(text.Blob.Skip(4)));
+            }
         }
 
         private byte[] Decompress(IEnumerable<byte> bytes)
@@ -200,6 +241,17 @@ class Program
         private sealed class HugeStream : MemoryStream
         {
             public override long Length => (long)int.MaxValue + 1;
+        }
+
+        private sealed class TruncatingStream : MemoryStream
+        {
+            public TruncatingStream(long length)
+            {
+                Length = length;
+            }
+
+            public override long Length { get; }
+            public override int Read(byte[] buffer, int offset, int count) => 0;
         }
 
         private sealed class ReadFailsStream : MemoryStream

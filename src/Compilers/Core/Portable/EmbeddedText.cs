@@ -228,6 +228,7 @@ namespace Microsoft.CodeAnalysis
                 {
                     builder.WriteInt32(0);
                     int bytesWritten = builder.TryWriteBytes(stream, length);
+
                     if (length != bytesWritten)
                     {
                         throw new EndOfStreamException();
@@ -242,9 +243,14 @@ namespace Microsoft.CodeAnalysis
                 {
                     builder.WriteInt32(length);
 
-                    using (var deflater = new DeflateStream(builder, CompressionLevel.Optimal, leaveOpen: true))
+                    using (var deflater = new CountingDeflateStream(builder, CompressionLevel.Optimal, leaveOpen: true))
                     {
                         stream.CopyTo(deflater);
+
+                        if (length != deflater.BytesWritten)
+                        {
+                            throw new EndOfStreamException();
+                        }
                     }
 
                     return builder.ToImmutableArray();
@@ -271,7 +277,7 @@ namespace Microsoft.CodeAnalysis
                 {
                     builder.WriteInt32(bytes.Count);
 
-                    using (var deflater = new DeflateStream(builder, CompressionLevel.Optimal, leaveOpen: true))
+                    using (var deflater = new CountingDeflateStream(builder, CompressionLevel.Optimal, leaveOpen: true))
                     {
                         deflater.Write(bytes.Array, bytes.Offset, bytes.Count);
                     }
