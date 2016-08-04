@@ -1158,6 +1158,21 @@ namespace Microsoft.CodeAnalysis.CSharp
                 keyFileSetting = ParseGenericPathToFile(keyFileSetting, diagnostics, baseDirectory);
             }
 
+            if (embedAllSourceFiles)
+            {
+                embeddedFiles.AddRange(sourceFiles);
+            }
+
+            if (embeddedFiles.Count > 0)
+            {
+                // Restricted to portable PDBs for now, but the IsPortable condition should be removed
+                // and the error message adjusted accordingly when native PDB support is added.
+                if (!emitPdb || !debugInformationFormat.IsPortable())
+                {
+                    AddDiagnostic(diagnostics, ErrorCode.ERR_CannotEmbedWithoutPdb);
+                }
+            }
+
             var parsedFeatures = CompilerOptionParseUtilities.ParseFeatures(features);
 
             string compilationName;
@@ -1206,15 +1221,7 @@ namespace Microsoft.CodeAnalysis.CSharp
                 options = options.WithDebugPlusMode(debugPlus);
             }
 
-            if (embedAllSourceFiles)
-            {
-                embeddedFiles.AddRange(sourceFiles);
-            }
-
-            if (embeddedFiles.Count > 0 && !emitPdb)
-            {
-                AddDiagnostic(diagnostics, ErrorCode.ERR_CannotEmbedWithoutPdb);
-            }
+            
 
             var emitOptions = new EmitOptions
             (

@@ -1708,6 +1708,17 @@ namespace Microsoft.CodeAnalysis
                 }
             }
 
+            bool emittingPdb = pdbStream != null || options?.DebugInformationFormat == DebugInformationFormat.Embedded;
+            bool emittingPortablePdb = emittingPdb && options?.DebugInformationFormat.IsPortable() == true;
+
+            if (embeddedTexts?.Any() == true)
+            {
+                if (!emittingPortablePdb)
+                {
+                    throw new ArgumentException(CodeAnalysisResources.EmbeddedTextsRequirePortablePdb, nameof(embeddedTexts));
+                }
+            }
+
             return Emit(
                 peStream,
                 pdbStream,

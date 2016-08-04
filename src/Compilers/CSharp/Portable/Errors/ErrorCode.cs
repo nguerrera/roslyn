@@ -1060,7 +1060,9 @@ namespace Microsoft.CodeAnalysis.CSharp
         ERR_InvalidOutputName = 2041,
         ERR_InvalidDebugInformationFormat = 2042,
         ERR_LegacyObjectIdSyntax = 2043,
-        // unused 2044-2999
+        // TODO: expecting merge conflict with ERR_SourceLinkRequiresPortablePdb = 2044, 
+        ERR_CannotEmbedWithoutPdb = 2045,
+        // unused 2046-2999
         WRN_CLS_NoVarArgs = 3000,
         WRN_CLS_BadArgType = 3001, // Requires SymbolDistinguisher.
         WRN_CLS_BadReturnType = 3002,
@@ -1343,11 +1345,7 @@ namespace Microsoft.CodeAnalysis.CSharp
         ERR_ExpressionTreeContainsLocalFunction = 8110,
         #endregion diagnostics for local functions introduced in C# 7
 
-        // Available = 8111, 8112, 8113, 8114
-
-        #region diagnostics for embedded source introduced in C# 7
-        ERR_CannotEmbedWithoutPdb = 8115,
-        #endregion
+        // Available = 8111, 8112, 8113, 8114, 8115
 
         #region diagnostics for pattern-matching introduced in C# 7
         ERR_PatternNullableType = 8116,

@@ -388,6 +388,15 @@ namespace Microsoft.CodeAnalysis {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Embedded texts are only supported when emitting Portable PDB..
+        /// </summary>
+        internal static string EmbeddedTextsRequirePortablePdb {
+            get {
+                return ResourceManager.GetString("EmbeddedTextsRequirePortablePdb", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to A key in the pathMap is empty..
         /// </summary>
         internal static string EmptyKeyInPathMap {
@@ -1100,7 +1109,7 @@ namespace Microsoft.CodeAnalysis {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to SourceText must have been created with canBeEmbedded=true to be embedded..
+        ///   Looks up a localized string similar to SourceText cannot be embedded. Provide encoding or canBeEmbedded=true at construction..
         /// </summary>
         internal static string SourceTextCannotBeEmbedded {
             get {
