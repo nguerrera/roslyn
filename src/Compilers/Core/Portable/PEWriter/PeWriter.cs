@@ -90,7 +90,8 @@ namespace Microsoft.Cci
 #endif
                 }
 
-                nativePdbWriterOpt.WriteRemainingEmbeddedDocuments(mdWriter.Module.EmbeddedDocuments);
+                // embedded text not currently supported for native PDB and we should have validated that
+                Debug.Assert(!mdWriter.Module.EmbeddedDocuments.Any());
             }
 
             Stream peStream = getPeStream();
