@@ -217,7 +217,7 @@ namespace Microsoft.CodeAnalysis
 
         private ImmutableArray<EmbeddedText> AcquireEmbeddedTexts(Compilation compilation, IList<DiagnosticInfo> diagnostics)
         {
-            if (Arguments.EmbeddedFiles.IsDefaultOrEmpty) 
+            if (Arguments.EmbeddedFiles.IsEmpty)
             {
                 return ImmutableArray<EmbeddedText>.Empty;
             }
@@ -286,7 +286,7 @@ namespace Microsoft.CodeAnalysis
 
         private static ReadOnlyHashSet<string> GetEmbedddedSourcePaths(CommandLineArguments arguments)
         {
-            if (arguments.EmbeddedFiles.IsDefaultOrEmpty)
+            if (arguments.EmbeddedFiles.IsEmpty)
             {
                 return ReadOnlyHashSet<string>.Empty;
             }

@@ -1348,7 +1348,8 @@ lVbRuntimePlus:
                 .EmitPdb = emitPdb,
                 .DefaultCoreLibraryReference = defaultCoreLibraryReference,
                 .PreferredUILang = preferredUILang,
-                .ReportAnalyzer = reportAnalyzer
+                .ReportAnalyzer = reportAnalyzer,
+                .EmbeddedFiles = ImmutableArray(Of CommandLineSourceFile).Empty
             }
         End Function
 
