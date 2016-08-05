@@ -2117,6 +2117,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             diagnostics As DiagnosticBag,
             cancellationToken As CancellationToken) As CommonPEModuleBuilder
 
+            If embeddedTexts?.Any() Then
+                Throw New ArgumentException(VBResources.EmbeddedTextsNotSupported, NameOf(embeddedTexts))
+            End If
+
             Return CreateModuleBuilder(
                 emitOptions,
                 debugEntryPoint,

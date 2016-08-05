@@ -1767,7 +1767,7 @@ namespace Microsoft.CodeAnalysis
                     options.DebugInformationFormat == DebugInformationFormat.Pdb ||
                     options.DebugInformationFormat == DebugInformationFormat.PortablePdb && pdbStream == null)
                 {
-                    throw new ArgumentException(CodeAnalysisResources.SourceLinkRequiresPortablePdb, nameof(sourceLinkStream));
+                    throw new ArgumentException(CodeAnalysisResources.SourceLinkRequiresPortablePdb, nameof(embeddedTexts));
                 }
             }
 
