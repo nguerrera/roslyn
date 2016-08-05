@@ -36,9 +36,6 @@ namespace Microsoft.CodeAnalysis
         /// <summary>
         /// The set of source file paths that are in the set of embedded paths.
         /// This is used to prevent reading source files that are embedded twice.
-        ///
-        /// It further prevents a race where the file we embed could have changed
-        /// since the time it was parsed.
         /// </summary>
         public ReadOnlyHashSet<string> EmbeddedSourcePaths { get; }
 
@@ -244,17 +241,27 @@ namespace Microsoft.CodeAnalysis
 
                 // also embed the text of any #line directive targets of embedded tree
                 string previousMappedPathOpt = null; // optimize for common consecutive repetition
+                var resolver = compilation.Options.SourceReferenceResolver;
                 foreach (var entry in tree.GetLineDirectiveMap().Entries)
                 {
                     if (entry.MappedPathOpt != previousMappedPathOpt && entry.MappedPathOpt != null)
                     {
-                        string resolvedPath = FileUtilities.NormalizeRelativePath(
-                            entry.MappedPathOpt, 
-                            tree.FilePath,
-                            Arguments.BaseDirectory);
+                        previousMappedPathOpt = entry.MappedPathOpt;
+                        string resolvedPath = resolver.ResolveReference(entry.MappedPathOpt, tree.FilePath);
+
+                        if (resolvedPath == null)
+                        {
+                            // TODO (WIP): Should report location of reference, but currently wired to DiagnosticInfo which doesn't carry location.
+                            diagnostics.Add(new DiagnosticInfo(
+                                MessageProvider,
+                                MessageProvider.ERR_NoSourceFile,
+                                entry.MappedPathOpt,
+                                CodeAnalysisResources.FileNotFound));
+
+                            continue;
+                        }
 
                         embeddedFileOrderedSet.Add(resolvedPath);
-                        previousMappedPathOpt = entry.MappedPathOpt;
                     }
                 }
             }
@@ -291,16 +298,28 @@ namespace Microsoft.CodeAnalysis
                 return ReadOnlyHashSet<string>.Empty;
             }
 
+            // Note that we require an exact match between source and embedded file paths (case-sensitive
+            // and without normalization). If two files are the same but spelled differently, they will
+            // be handled as separate files, meaning the embedding pass will read the content a second
+            // time. This can also lead to more than one document entry in the PDB for the same document
+            // if the PDB document de-duping policy in emit (normalize + case-sensitive in C#,
+            // normalize + case-insensitive in VB) is not enough to converge them.
+
             // The set of normalized absolute paths to source files that are also embedded files
             var embedSet = new ReadOnlyHashSet<string>(
                 from file in arguments.EmbeddedFiles
-                select FileUtilities.NormalizeAbsolutePath(file.Path));
+                select file.Path);
 
             // The set of source files with their original absolute paths that are to be embedded.
             return new ReadOnlyHashSet<string>(
                 from file in arguments.SourceFiles
-                where embedSet.Contains(FileUtilities.NormalizeAbsolutePath(file.Path))
+                where embedSet.Contains(file.Path)
                 select file.Path);
+        }
+
+        private static string NormalizeDebugDocumentPath(CommandLineSourceFile file)
+        {
+            return FileUtilities.TryNormalizeAbsolutePath(file.Path) ?? file.Path;
         }
 
         internal static DiagnosticInfo ToFileReadDiagnostics(CommonMessageProvider messageProvider, Exception e, string filePath)
