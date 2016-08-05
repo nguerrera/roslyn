@@ -1693,7 +1693,11 @@ d.cs
         [Fact]
         public void Embed()
         {
-            var parsedArgs = DefaultParse(new[] { "/embed", "/debug:portable", "a.cs", "b.cs", "c.cs" }, _baseDirectory);
+            var parsedArgs = DefaultParse(new[] { "a.cs "}, _baseDirectory);
+            parsedArgs.Errors.Verify();
+            Assert.Empty(parsedArgs.EmbeddedFiles);
+
+            parsedArgs = DefaultParse(new[] { "/embed", "/debug:portable", "a.cs", "b.cs", "c.cs" }, _baseDirectory);
             parsedArgs.Errors.Verify();
             AssertEx.Equal(parsedArgs.SourceFiles, parsedArgs.EmbeddedFiles);
             AssertEx.Equal(
