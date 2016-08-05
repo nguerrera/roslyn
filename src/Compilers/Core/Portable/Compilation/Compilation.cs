@@ -1697,8 +1697,12 @@ namespace Microsoft.CodeAnalysis
         /// </param>
         /// <param name="sourceLinkStream">
         /// Stream containing information linking the compilation to a source control.
+        /// Only supported when emitting Portable PDBs.
         /// </param>
-        /// <param name="embeddedTexts">Texts to embed in the PDB.</param>
+        /// <param name="embeddedTexts">
+        /// Texts to embed in the PDB.
+        /// Only supported when emitting Portable PDBs.
+        /// </param>
         /// <param name="cancellationToken">To cancel the emit process.</param>
         public EmitResult Emit(
             Stream peStream,

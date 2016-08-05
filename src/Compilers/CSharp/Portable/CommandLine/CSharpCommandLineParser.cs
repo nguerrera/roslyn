@@ -1242,8 +1242,6 @@ namespace Microsoft.CodeAnalysis.CSharp
                 options = options.WithDebugPlusMode(debugPlus);
             }
 
-            
-
             var emitOptions = new EmitOptions
             (
                 metadataOnly: false,
