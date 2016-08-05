@@ -545,6 +545,7 @@ namespace Microsoft.CodeAnalysis
                 var finalXmlFilePath = Arguments.DocumentationPath;
 
                 var diagnosticBag = DiagnosticBag.GetInstance();
+                Stream sourceLinkStreamOpt = null;
 
                 try
                 {
@@ -566,11 +567,17 @@ namespace Microsoft.CodeAnalysis
                         emitOptions = emitOptions.WithPdbFilePath(Path.GetFileName(emitOptions.PdbFilePath));
                     }
 
+                    if (Arguments.SourceLink != null)
+                    {
+                        sourceLinkStreamOpt = OpenFile(Arguments.SourceLink, consoleOutput, PortableShim.FileMode.Open, PortableShim.FileAccess.Read, PortableShim.FileShare.Read);
+                    }
+
                     var moduleBeingBuilt = compilation.CheckOptionsAndCreateModuleBuilder(
                         diagnosticBag,
                         Arguments.ManifestResources,
                         emitOptions,
                         debugEntryPoint: null,
+                        sourceLinkStream: sourceLinkStreamOpt,
                         embeddedTexts: embeddedTexts,
                         testData: null,
                         cancellationToken: cancellationToken);
@@ -688,6 +695,7 @@ namespace Microsoft.CodeAnalysis
                 finally
                 {
                     diagnosticBag.Free();
+                    sourceLinkStreamOpt?.Dispose();
                 }
 
                 cancellationToken.ThrowIfCancellationRequested();

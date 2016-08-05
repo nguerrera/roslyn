@@ -2221,6 +2221,7 @@ namespace Microsoft.CodeAnalysis.CSharp
         internal override CommonPEModuleBuilder CreateModuleBuilder(
             EmitOptions emitOptions,
             IMethodSymbol debugEntryPoint,
+            Stream sourceLinkStream,
             IEnumerable<EmbeddedText> embeddedTexts,
             IEnumerable<ResourceDescription> manifestResources,
             CompilationTestData testData,
@@ -2267,10 +2268,9 @@ namespace Microsoft.CodeAnalysis.CSharp
                 moduleBeingBuilt.SetDebugEntryPoint((MethodSymbol)debugEntryPoint, diagnostics);
             }
 
-            if (embeddedTexts != null)
-            {
-                moduleBeingBuilt.EmbeddedTextsOpt = embeddedTexts;
-            }
+            
+            moduleBeingBuilt.SourceLinkStreamOpt = sourceLinkStream;
+            moduleBeingBuilt.EmbeddedTextsOpt = embeddedTexts;
 
             // testData is only passed when running tests.
             if (testData != null)
@@ -2358,19 +2358,17 @@ namespace Microsoft.CodeAnalysis.CSharp
             Debug.Assert(!moduleBuilder.EmitOptions.EmitMetadataOnly);
 
             // Use a temporary bag so we don't have to refilter pre-existing diagnostics.
-            DiagnosticBag methodBodyDiagnosticBag = DiagnosticBag.GetInstance();
+            var resourceDiagnostics = DiagnosticBag.GetInstance();
 
-            var moduleBeingBuilt = (PEModuleBuilder)moduleBuilder;
-
-            SetupWin32Resources(moduleBeingBuilt, win32Resources, methodBodyDiagnosticBag);
+            SetupWin32Resources(moduleBuilder, win32Resources, resourceDiagnostics);
 
             ReportManifestResourceDuplicates(
-                moduleBeingBuilt.ManifestResources,
-                SourceAssembly.Modules.Skip(1).Select((m) => m.Name),   //all modules except the first one
-                AddedModulesResourceNames(methodBodyDiagnosticBag),
-                methodBodyDiagnosticBag);
+                moduleBuilder.ManifestResources,
+                SourceAssembly.Modules.Skip(1).Select(m => m.Name),   //all modules except the first one
+                AddedModulesResourceNames(resourceDiagnostics),
+                resourceDiagnostics);
 
-            if (!FilterAndAppendAndFreeDiagnostics(diagnostics, ref methodBodyDiagnosticBag))
+            if (!FilterAndAppendAndFreeDiagnostics(diagnostics, ref resourceDiagnostics))
             {
                 return false;
             }
@@ -2378,9 +2376,9 @@ namespace Microsoft.CodeAnalysis.CSharp
             cancellationToken.ThrowIfCancellationRequested();
 
             // Use a temporary bag so we don't have to refilter pre-existing diagnostics.
-            DiagnosticBag xmlDiagnostics = DiagnosticBag.GetInstance();
+            var xmlDiagnostics = DiagnosticBag.GetInstance();
 
-            string assemblyName = FileNameUtilities.ChangeExtension(moduleBeingBuilt.EmitOptions.OutputNameOverride, extension: null);
+            string assemblyName = FileNameUtilities.ChangeExtension(moduleBuilder.EmitOptions.OutputNameOverride, extension: null);
             DocumentationCommentCompiler.WriteDocumentationCommentXml(this, assemblyName, xmlDocStream, xmlDiagnostics, cancellationToken);
 
             return FilterAndAppendAndFreeDiagnostics(diagnostics, ref xmlDiagnostics);
@@ -2642,25 +2640,6 @@ namespace Microsoft.CodeAnalysis.CSharp
         private static Cci.DebugSourceDocument MakeDebugSourceDocumentForEmbeddedText(string normalizedPath, EmbeddedText text)
         {
             return new Cci.DebugSourceDocument(normalizedPath, Cci.DebugSourceDocument.CorSymLanguageTypeCSharp, () => text.GetDebugSourceInfo());
-        }
-
-        private void SetupWin32Resources(PEModuleBuilder moduleBeingBuilt, Stream win32Resources, DiagnosticBag diagnostics)
-        {
-            if (win32Resources == null)
-                return;
-
-            switch (DetectWin32ResourceForm(win32Resources))
-            {
-                case Win32ResourceForm.COFF:
-                    moduleBeingBuilt.Win32ResourceSection = MakeWin32ResourcesFromCOFF(win32Resources, diagnostics);
-                    break;
-                case Win32ResourceForm.RES:
-                    moduleBeingBuilt.Win32Resources = MakeWin32ResourceList(win32Resources, diagnostics);
-                    break;
-                default:
-                    diagnostics.Add(ErrorCode.ERR_BadWin32Res, NoLocation.Singleton, "Unrecognized file format.");
-                    break;
-            }
         }
 
         internal override bool HasCodeToEmit()

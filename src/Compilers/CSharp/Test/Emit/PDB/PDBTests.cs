@@ -140,6 +140,7 @@ public class C
                     manifestResources: null,
                     options: null,
                     debugEntryPoint: null,
+                    sourceLinkStream: null,
                     embeddedTexts: null,
                     testData: new CompilationTestData() { SymWriterFactory = () => new MockSymUnmanagedWriter() });
 
@@ -172,6 +173,7 @@ public class C
                     manifestResources: null,
                     options: null,
                     debugEntryPoint: null,
+                    sourceLinkStream: null,
                     embeddedTexts: null,
                     testData: new CompilationTestData() { SymWriterFactory = () => new object() });
 
@@ -204,6 +206,7 @@ public class C
                     manifestResources: null,
                     options: null,
                     debugEntryPoint: null,
+                    sourceLinkStream: null,
                     embeddedTexts: null,
                     testData: new CompilationTestData() { SymWriterFactory = () => new MockSymUnmanagedWriter() });
 

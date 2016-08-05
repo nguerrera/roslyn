@@ -1277,7 +1277,7 @@ namespace Microsoft.CodeAnalysis.CSharp {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Invalid option &apos;{0}&apos; for /debug; must be full or pdbonly.
+        ///   Looks up a localized string similar to Invalid option &apos;{0}&apos; for /debug; must be &apos;portable&apos;, &apos;embedded&apos;, &apos;full&apos; or &apos;pdbonly&apos;.
         /// </summary>
         internal static string ERR_BadDebugType {
             get {
@@ -8392,6 +8392,15 @@ namespace Microsoft.CodeAnalysis.CSharp {
         internal static string ERR_SourceFileReferencesNotSupported {
             get {
                 return ResourceManager.GetString("ERR_SourceFileReferencesNotSupported", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to /sourcelink switch is only supported when emitting Portable PDB (/debug:portable or /debug:embedded must be specified)..
+        /// </summary>
+        internal static string ERR_SourceLinkRequiresPortablePdb {
+            get {
+                return ResourceManager.GetString("ERR_SourceLinkRequiresPortablePdb", resourceCulture);
             }
         }
         

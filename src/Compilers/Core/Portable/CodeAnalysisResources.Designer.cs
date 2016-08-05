@@ -1109,6 +1109,15 @@ namespace Microsoft.CodeAnalysis {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Source Link embedding is only supported when emitting Portable PDB..
+        /// </summary>
+        internal static string SourceLinkRequiresPortablePdb {
+            get {
+                return ResourceManager.GetString("SourceLinkRequiresPortablePdb", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to SourceText cannot be embedded. Provide encoding or canBeEmbedded=true at construction..
         /// </summary>
         internal static string SourceTextCannotBeEmbedded {
@@ -1150,6 +1159,15 @@ namespace Microsoft.CodeAnalysis {
         internal static string StreamIsTooLong {
             get {
                 return ResourceManager.GetString("StreamIsTooLong", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Stream must be readable..
+        /// </summary>
+        internal static string StreamMustSupportRead {
+            get {
+                return ResourceManager.GetString("StreamMustSupportRead", resourceCulture);
             }
         }
         
@@ -1258,6 +1276,15 @@ namespace Microsoft.CodeAnalysis {
         internal static string UnexpectedTypeOfNodeInList {
             get {
                 return ResourceManager.GetString("UnexpectedTypeOfNodeInList", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Unrecognized resource file format..
+        /// </summary>
+        internal static string UnrecognizedResourceFileFormat {
+            get {
+                return ResourceManager.GetString("UnrecognizedResourceFileFormat", resourceCulture);
             }
         }
         

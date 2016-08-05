@@ -1160,6 +1160,25 @@ namespace Microsoft.CodeAnalysis
             return resourceList;
         }
 
+        internal void SetupWin32Resources(CommonPEModuleBuilder moduleBeingBuilt, Stream win32Resources, DiagnosticBag diagnostics)
+        {
+            if (win32Resources == null)
+                return;
+
+            switch (DetectWin32ResourceForm(win32Resources))
+            {
+                case Win32ResourceForm.COFF:
+                    moduleBeingBuilt.Win32ResourceSection = MakeWin32ResourcesFromCOFF(win32Resources, diagnostics);
+                    break;
+                case Win32ResourceForm.RES:
+                    moduleBeingBuilt.Win32Resources = MakeWin32ResourceList(win32Resources, diagnostics);
+                    break;
+                default:
+                    diagnostics.Add(MessageProvider.CreateDiagnostic(MessageProvider.ERR_BadWin32Resource, NoLocation.Singleton, CodeAnalysisResources.UnrecognizedResourceFileFormat));
+                    break;
+            }
+        }
+
         internal void ReportManifestResourceDuplicates(
             IEnumerable<ResourceDescription> manifestResources,
             IEnumerable<string> addedModuleNames,
@@ -1491,6 +1510,7 @@ namespace Microsoft.CodeAnalysis
         internal abstract CommonPEModuleBuilder CreateModuleBuilder(
             EmitOptions emitOptions,
             IMethodSymbol debugEntryPoint,
+            Stream sourceLinkStream,
             IEnumerable<EmbeddedText> embeddedTexts,
             IEnumerable<ResourceDescription> manifestResources,
             CompilationTestData testData,
@@ -1573,8 +1593,9 @@ namespace Microsoft.CodeAnalysis
                     var moduleBeingBuilt = this.CreateModuleBuilder(
                         emitOptions: EmitOptions.Default,
                         debugEntryPoint: null,
-                        embeddedTexts: null,
                         manifestResources: null,
+                        sourceLinkStream: null,
+                        embeddedTexts: null,
                         testData: null,
                         diagnostics: discardedDiagnostics,
                         cancellationToken: cancellationToken);
@@ -1618,8 +1639,9 @@ namespace Microsoft.CodeAnalysis
                 win32Resources,
                 manifestResources,
                 options,
-                null,
-                null,
+                default(IMethodSymbol),
+                default(Stream),
+                default(IEnumerable<EmbeddedText>),
                 cancellationToken);
         }
 
@@ -1643,7 +1665,8 @@ namespace Microsoft.CodeAnalysis
                 manifestResources,
                 options,
                 debugEntryPoint,
-                null,
+                default(Stream),
+                default(IEnumerable<EmbeddedText>),
                 cancellationToken);
         }
 
@@ -1672,7 +1695,10 @@ namespace Microsoft.CodeAnalysis
         /// Unlike ordinary entry-point which is limited to a non-generic static method of specific signature, there are no restrictions on the <paramref name="debugEntryPoint"/> 
         /// method other than having a method body (extern, interface, or abstract methods are not allowed).
         /// </param>
-        /// <param name="embeddedTexts">The texts to embed in the PDB.</param>
+        /// <param name="sourceLinkStream">
+        /// Stream containing information linking the compilation to a source control.
+        /// </param>
+        /// <param name="embeddedTexts">Texts to embed in the PDB.</param>
         /// <param name="cancellationToken">To cancel the emit process.</param>
         public EmitResult Emit(
             Stream peStream,
@@ -1682,6 +1708,7 @@ namespace Microsoft.CodeAnalysis
             IEnumerable<ResourceDescription> manifestResources = null,
             EmitOptions options = null,
             IMethodSymbol debugEntryPoint = null,
+            Stream sourceLinkStream = null,
             IEnumerable<EmbeddedText> embeddedTexts = null,
             CancellationToken cancellationToken = default(CancellationToken))
         {
@@ -1708,14 +1735,35 @@ namespace Microsoft.CodeAnalysis
                 }
             }
 
-            bool emittingPdb = pdbStream != null || options?.DebugInformationFormat == DebugInformationFormat.Embedded;
-            bool emittingPortablePdb = emittingPdb && options?.DebugInformationFormat.IsPortable() == true;
-
-            if (embeddedTexts?.Any() == true)
+            if (win32Resources != null)
             {
-                if (!emittingPortablePdb)
+                if (!win32Resources.CanRead || !win32Resources.CanSeek)
                 {
-                    throw new ArgumentException(CodeAnalysisResources.EmbeddedTextsRequirePortablePdb, nameof(embeddedTexts));
+                    throw new ArgumentException(CodeAnalysisResources.StreamMustSupportReadAndSeek, nameof(win32Resources));
+                }
+            }
+
+            if (sourceLinkStream != null)
+            {
+                if (options == null || 
+                    options.DebugInformationFormat == DebugInformationFormat.Pdb ||
+                    options.DebugInformationFormat == DebugInformationFormat.PortablePdb && pdbStream == null)
+                {
+                    throw new ArgumentException(CodeAnalysisResources.SourceLinkRequiresPortablePdb, nameof(sourceLinkStream));
+                }
+
+                if (!sourceLinkStream.CanRead)
+                {
+                    throw new ArgumentException(CodeAnalysisResources.StreamMustSupportRead, nameof(sourceLinkStream));
+                }
+            }
+            if (embeddedTexts != null && embeddedTexts.Any())
+            {
+                if (options == null || 
+                    options.DebugInformationFormat == DebugInformationFormat.Pdb ||
+                    options.DebugInformationFormat == DebugInformationFormat.PortablePdb && pdbStream == null)
+                {
+                    throw new ArgumentException(CodeAnalysisResources.SourceLinkRequiresPortablePdb, nameof(sourceLinkStream));
                 }
             }
 
@@ -1727,6 +1775,7 @@ namespace Microsoft.CodeAnalysis
                 manifestResources,
                 options,
                 debugEntryPoint,
+                sourceLinkStream,
                 embeddedTexts,
                 testData: null,
                 cancellationToken: cancellationToken);
@@ -1744,6 +1793,7 @@ namespace Microsoft.CodeAnalysis
             IEnumerable<ResourceDescription> manifestResources,
             EmitOptions options,
             IMethodSymbol debugEntryPoint,
+            Stream sourceLinkStream,
             IEnumerable<EmbeddedText> embeddedTexts,
             CompilationTestData testData,
             CancellationToken cancellationToken)
@@ -1758,6 +1808,7 @@ namespace Microsoft.CodeAnalysis
                 manifestResources,
                 options,
                 debugEntryPoint,
+                sourceLinkStream,
                 embeddedTexts,
                 testData,
                 cancellationToken);
@@ -1906,6 +1957,7 @@ namespace Microsoft.CodeAnalysis
             IEnumerable<ResourceDescription> manifestResources,
             EmitOptions options,
             IMethodSymbol debugEntryPoint,
+            Stream sourceLinkStream,
             IEnumerable<EmbeddedText> embeddedTexts,
             CompilationTestData testData,
             CancellationToken cancellationToken)
@@ -1953,6 +2005,7 @@ namespace Microsoft.CodeAnalysis
             return this.CreateModuleBuilder(
                 options,
                 debugEntryPoint,
+                sourceLinkStream,
                 embeddedTexts,
                 manifestResources,
                 testData,
