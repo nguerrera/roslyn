@@ -87,8 +87,29 @@ namespace Microsoft.CodeAnalysis.Emit
         // Deviating from that may result in unexpected warnings or different behavior (possibly without warnings).
         private readonly ConcurrentDictionary<string, Cci.DebugSourceDocument> _debugDocuments;
 
-        internal IEnumerable<EmbeddedText> EmbeddedTextsOpt { get; set; }
-        internal IEnumerable<Cci.DebugSourceDocument> EmbeddedDocumentsOpt { set; private get; }
+        private IEnumerable<EmbeddedText> _embedddedTexts = SpecializedCollections.EmptyEnumerable<EmbeddedText>();
+        private IEnumerable<Cci.DebugSourceDocument> _embeddedDocuments = SpecializedCollections.EmptyEnumerable<Cci.DebugSourceDocument>();
+
+
+        public IEnumerable<EmbeddedText> EmbeddedTexts
+        {
+            get { return _embedddedTexts; }
+            set
+            {
+                Debug.Assert(value != null);
+                _embedddedTexts = value;
+            }
+        }
+
+        public IEnumerable<Cci.DebugSourceDocument> EmbeddedDocuments
+        {
+            get { return _embeddedDocuments; }
+            set
+            {
+                Debug.Assert(value != null);
+                _embeddedDocuments = value;
+            }
+        }
 
         public abstract TEmbeddedTypesManager EmbeddedTypesManagerOpt { get; }
 
@@ -927,14 +948,6 @@ namespace Microsoft.CodeAnalysis.Emit
         }
 
         int Cci.IModule.DebugDocumentCount => _debugDocuments.Count;
-
-        IEnumerable<Cci.DebugSourceDocument> Cci.IModule.EmbeddedDocuments
-        {
-            get
-            {
-                return this.EmbeddedDocumentsOpt ?? SpecializedCollections.EmptyEnumerable<Cci.DebugSourceDocument>();
-            }
-        }
 
         #endregion
 

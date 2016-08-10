@@ -2268,9 +2268,12 @@ namespace Microsoft.CodeAnalysis.CSharp
                 moduleBeingBuilt.SetDebugEntryPoint((MethodSymbol)debugEntryPoint, diagnostics);
             }
 
-            
             moduleBeingBuilt.SourceLinkStreamOpt = sourceLinkStream;
-            moduleBeingBuilt.EmbeddedTextsOpt = embeddedTexts;
+
+            if (embeddedTexts != null)
+            {
+                moduleBeingBuilt.EmbeddedTexts = embeddedTexts;
+            }
 
             // testData is only passed when running tests.
             if (testData != null)
@@ -2405,13 +2408,13 @@ namespace Microsoft.CodeAnalysis.CSharp
                 return false;
             }
 
-            // Add debug documents for all embedded text first. This ensures that embedding takes priority over the 
-            // syntax tree pass, which will not embed.
-            if (moduleBeingBuilt.EmbeddedTextsOpt != null)
+            if (moduleBeingBuilt.EmbeddedTexts.Any())
             {
+                // Add debug documents for all embedded text first. This ensures that embedding takes priority over the 
+                // syntax tree pass, which will not embed.
                 var embeddedDocuments = ArrayBuilder<Cci.DebugSourceDocument>.GetInstance();
 
-                foreach (var text in moduleBeingBuilt.EmbeddedTextsOpt)
+                foreach (var text in moduleBeingBuilt.EmbeddedTexts)
                 {
                     Debug.Assert(!string.IsNullOrEmpty(text.FilePath));
 
@@ -2425,7 +2428,7 @@ namespace Microsoft.CodeAnalysis.CSharp
                     }
                 }
 
-                moduleBeingBuilt.EmbeddedDocumentsOpt = embeddedDocuments.ToImmutableAndFree();
+                moduleBeingBuilt.EmbeddedDocuments = embeddedDocuments.ToImmutableAndFree();
             }
 
             // Add debug documents for all trees with distinct paths.

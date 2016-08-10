@@ -20,7 +20,6 @@ namespace Microsoft.CodeAnalysis
     {
         private ImmutableArray<byte> _lazyChecksum;
         private SourceHashAlgorithm _lazyHashAlgorithm;
-        private LineDirectiveMap _lazyLineDirectiveMap;
 
         /// <summary>
         /// The path of the source document file.
@@ -233,17 +232,6 @@ namespace Microsoft.CodeAnalysis
         {
             isHiddenPosition = GetLineVisibility(span.Start) == LineVisibility.Hidden;
             return GetMappedLineSpan(span);
-        }
-
-        /// <summary>
-        /// Gets the underlying <see cref="LineDirectiveMap"/> that backs GetMapped* operations.
-        /// </summary>
-        internal virtual LineDirectiveMap GetLineDirectiveMap()
-        {
-            // This is overridden by C# and VB, but SyntaxTree has visible constructor and we
-            // therefore cannot add new abstract members.
-            Debug.Assert(false); 
-            throw new NotImplementedException();
         }
 
         /// <summary>

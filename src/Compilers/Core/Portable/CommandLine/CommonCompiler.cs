@@ -140,7 +140,7 @@ namespace Microsoft.CodeAnalysis
         /// <param name="file">Source file information.</param>
         /// <param name="diagnostics">Storage for diagnostics.</param>
         /// <returns>File content or null on failure.</returns>
-        internal SourceText ReadFileContent(CommandLineSourceFile file, IList<DiagnosticInfo> diagnostics)
+        internal SourceText TryReadFileContent(CommandLineSourceFile file, IList<DiagnosticInfo> diagnostics)
         {
             string discarded;
             return TryReadFileContent(file, diagnostics, out discarded);
@@ -186,7 +186,7 @@ namespace Microsoft.CodeAnalysis
                 options: PortableShim.FileOptions.None);
         }
 
-        internal EmbeddedText TryReadEmbeddedFileContent(string filePath, IList<DiagnosticInfo> diagnostics)
+        internal EmbeddedText TryReadEmbeddedFileContent(string filePath, IList<Diagnostic> diagnostics)
         {
             try
             {
@@ -207,12 +207,12 @@ namespace Microsoft.CodeAnalysis
             }
             catch (Exception e)
             {
-                diagnostics.Add(ToFileReadDiagnostics(this.MessageProvider, e, filePath));
+                diagnostics.Add(MessageProvider.CreateDiagnostic(ToFileReadDiagnostics(this.MessageProvider, e, filePath)));
                 return null;
             }
         }
 
-        private ImmutableArray<EmbeddedText> AcquireEmbeddedTexts(Compilation compilation, IList<DiagnosticInfo> diagnostics)
+        private ImmutableArray<EmbeddedText> AcquireEmbeddedTexts(Compilation compilation, IList<Diagnostic> diagnostics)
         {
             if (Arguments.EmbeddedFiles.IsEmpty)
             {
@@ -230,7 +230,7 @@ namespace Microsoft.CodeAnalysis
                     continue;
                 }
 
-                // Skip trees with duplicated paths. (VB allows this and "first one wins" is same as PDB emit policy.).
+                // Skip trees with duplicated paths. (VB allows this and "first tree wins" is same as PDB emit policy.)
                 if (embeddedTreeMap.ContainsKey(tree.FilePath))
                 {
                     continue;
@@ -240,30 +240,7 @@ namespace Microsoft.CodeAnalysis
                 embeddedTreeMap.Add(tree.FilePath, tree);
 
                 // also embed the text of any #line directive targets of embedded tree
-                string previousMappedPathOpt = null; // optimize for common consecutive repetition
-                var resolver = compilation.Options.SourceReferenceResolver;
-                foreach (var entry in tree.GetLineDirectiveMap().Entries)
-                {
-                    if (entry.MappedPathOpt != previousMappedPathOpt && entry.MappedPathOpt != null)
-                    {
-                        previousMappedPathOpt = entry.MappedPathOpt;
-                        string resolvedPath = resolver.ResolveReference(entry.MappedPathOpt, tree.FilePath);
-
-                        if (resolvedPath == null)
-                        {
-                            // TODO (WIP): Should report location of reference, but currently wired to DiagnosticInfo which doesn't carry location.
-                            diagnostics.Add(new DiagnosticInfo(
-                                MessageProvider,
-                                MessageProvider.ERR_NoSourceFile,
-                                entry.MappedPathOpt,
-                                CodeAnalysisResources.FileNotFound));
-
-                            continue;
-                        }
-
-                        embeddedFileOrderedSet.Add(resolvedPath);
-                    }
-                }
+                ResolveEmbeddedFilesFromExternalSourceDirectives(tree, compilation.Options.SourceReferenceResolver, embeddedFileOrderedSet, diagnostics);
             }
 
             var embeddedTextBuilder = ImmutableArray.CreateBuilder<EmbeddedText>(embeddedFileOrderedSet.Count);
@@ -291,6 +268,13 @@ namespace Microsoft.CodeAnalysis
             return embeddedTextBuilder.MoveToImmutable();
         }
 
+
+        protected abstract void ResolveEmbeddedFilesFromExternalSourceDirectives(
+            SyntaxTree tree,
+            SourceReferenceResolver resolver,
+            OrderedSet<string> embeddedFiles,
+            IList<Diagnostic> diagnostics);
+
         private static ReadOnlyHashSet<string> GetEmbedddedSourcePaths(CommandLineArguments arguments)
         {
             if (arguments.EmbeddedFiles.IsEmpty)
@@ -305,21 +289,14 @@ namespace Microsoft.CodeAnalysis
             // if the PDB document de-duping policy in emit (normalize + case-sensitive in C#,
             // normalize + case-insensitive in VB) is not enough to converge them.
 
-            // The set of normalized absolute paths to source files that are also embedded files
             var embedSet = new ReadOnlyHashSet<string>(
                 from file in arguments.EmbeddedFiles
                 select file.Path);
 
-            // The set of source files with their original absolute paths that are to be embedded.
             return new ReadOnlyHashSet<string>(
                 from file in arguments.SourceFiles
                 where embedSet.Contains(file.Path)
                 select file.Path);
-        }
-
-        private static string NormalizeDebugDocumentPath(CommandLineSourceFile file)
-        {
-            return FileUtilities.TryNormalizeAbsolutePath(file.Path) ?? file.Path;
         }
 
         internal static DiagnosticInfo ToFileReadDiagnostics(CommonMessageProvider messageProvider, Exception e, string filePath)
@@ -515,15 +492,21 @@ namespace Microsoft.CodeAnalysis
                 return Failed;
             }
 
-            var diagnostics = new List<DiagnosticInfo>();
-            ImmutableArray<DiagnosticAnalyzer> analyzers = ResolveAnalyzersFromArguments(diagnostics, MessageProvider);
-            var additionalTextFiles = ResolveAdditionalFilesFromArguments(diagnostics, MessageProvider, touchedFilesLogger);
+            var diagnosticInfos = new List<DiagnosticInfo>();
+            ImmutableArray<DiagnosticAnalyzer> analyzers = ResolveAnalyzersFromArguments(diagnosticInfos, MessageProvider);
+            var additionalTextFiles = ResolveAdditionalFilesFromArguments(diagnosticInfos, MessageProvider, touchedFilesLogger);
+            if (ReportErrors(diagnosticInfos, consoleOutput, errorLogger))
+            {
+                return Failed;
+            }
+
+            var diagnostics = new List<Diagnostic>();
             ImmutableArray<EmbeddedText> embeddedTexts = AcquireEmbeddedTexts(compilation, diagnostics);
             if (ReportErrors(diagnostics, consoleOutput, errorLogger))
             {
                 return Failed;
             }
-
+            
             bool reportAnalyzer = false;
             CancellationTokenSource analyzerCts = null;
             AnalyzerManager analyzerManager = null;

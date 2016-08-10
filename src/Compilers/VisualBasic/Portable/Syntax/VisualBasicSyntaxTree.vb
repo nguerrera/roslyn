@@ -392,15 +392,6 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Return _lineDirectiveMap.TranslateSpanAndVisibility(Me.GetText(), Me.FilePath, span, isHiddenPosition)
         End Function
 
-        Friend Overrides Function GetLineDirectiveMap() As LineDirectiveMap
-            If _lineDirectiveMap Is Nothing Then
-                ' Create the line directive map on demand.
-                Interlocked.CompareExchange(_lineDirectiveMap, New VisualBasicLineDirectiveMap(Me), Nothing)
-            End If
-
-            Return _lineDirectiveMap
-        End Function
-
         Public Overrides Function HasHiddenRegions() As Boolean
             If _lineDirectiveMap Is Nothing Then
                 ' Create the line directive map on demand.

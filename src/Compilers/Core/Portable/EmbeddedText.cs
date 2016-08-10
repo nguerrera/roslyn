@@ -62,13 +62,13 @@ namespace Microsoft.CodeAnalysis
         /// The content that will be written to the PDB.
         /// </summary>
         /// <remarks>
-        /// Internal since this it is an implementation. The only public
+        /// Internal since this is an implementation detail. The only public
         /// contract is that you can pass EmbeddedText instances to Emit.
         /// It just so happened that doing this up-front was most practical
         /// and efficient, but we don't want to be tied to it.
         /// 
-        /// For efficiency, the format of this blob is exactly as it is written to the PDB,
-        /// which prevents extra copies being made during emit.
+        /// For efficiency, the format of this blob is exactly as it is written
+        /// to the PDB,which prevents extra copies being made during emit.
         ///
         /// The first 4 bytes (little endian int32) indicate the format:
         ///
