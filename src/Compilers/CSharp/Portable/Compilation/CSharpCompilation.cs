@@ -2320,7 +2320,8 @@ namespace Microsoft.CodeAnalysis.CSharp
             }
             else
             {
-                if ((emittingPdb || emitOptions.EmitDynamicAnalysisData) && !StartSourceChecksumCalculation(moduleBeingBuilt, diagnostics))
+                if ((emittingPdb || emitOptions.EmitDynamicAnalysisData) &&
+                    !StartSourceChecksumCalculation(moduleBeingBuilt.DebugDocumentsBuilder, moduleBeingBuilt.EmbeddedTexts, diagnostics))
                 {
                     return false;
                 }
@@ -2385,77 +2386,6 @@ namespace Microsoft.CodeAnalysis.CSharp
             DocumentationCommentCompiler.WriteDocumentationCommentXml(this, assemblyName, xmlDocStream, xmlDiagnostics, cancellationToken);
 
             return FilterAndAppendAndFreeDiagnostics(diagnostics, ref xmlDiagnostics);
-        }
-
-        // TODO: consider unifying with VB
-        private bool StartSourceChecksumCalculation(PEModuleBuilder moduleBeingBuilt, DiagnosticBag diagnostics)
-        {
-            var syntaxTrees = this.SyntaxTrees;
-
-            // Check that all syntax trees are debuggable:
-            bool allTreesDebuggable = true;
-            foreach (var tree in syntaxTrees)
-            {
-                if (!string.IsNullOrEmpty(tree.FilePath) && tree.GetText().Encoding == null)
-                {
-                    diagnostics.Add(ErrorCode.ERR_EncodinglessSyntaxTree, tree.GetRoot().GetLocation());
-                    allTreesDebuggable = false;
-                }
-            }
-
-            if (!allTreesDebuggable)
-            {
-                return false;
-            }
-
-            if (moduleBeingBuilt.EmbeddedTexts.Any())
-            {
-                // Add debug documents for all embedded text first. This ensures that embedding takes priority over the 
-                // syntax tree pass, which will not embed.
-                var embeddedDocuments = ArrayBuilder<Cci.DebugSourceDocument>.GetInstance();
-
-                foreach (var text in moduleBeingBuilt.EmbeddedTexts)
-                {
-                    Debug.Assert(!string.IsNullOrEmpty(text.FilePath));
-
-                    string normalizedPath = moduleBeingBuilt.NormalizeDebugDocumentPath(text.FilePath, basePath: null);
-                    var existingDoc = moduleBeingBuilt.TryGetDebugDocumentForNormalizedPath(normalizedPath);
-                    if (existingDoc == null)
-                    {
-                        var newDoc = MakeDebugSourceDocumentForEmbeddedText(normalizedPath, text);
-                        moduleBeingBuilt.AddDebugDocument(newDoc);
-                        embeddedDocuments.Add(newDoc);
-                    }
-                }
-
-                moduleBeingBuilt.EmbeddedDocuments = embeddedDocuments.ToImmutableAndFree();
-            }
-
-            // Add debug documents for all trees with distinct paths.
-            foreach (var tree in syntaxTrees)
-            {
-                if (!string.IsNullOrEmpty(tree.FilePath))
-                {
-                    // compilation does not guarantee that all trees will have distinct paths.
-                    // Do not attempt adding a document for a particular path if we already added one.
-                    string normalizedPath = moduleBeingBuilt.NormalizeDebugDocumentPath(tree.FilePath, basePath: null);
-                    var existingDoc = moduleBeingBuilt.TryGetDebugDocumentForNormalizedPath(normalizedPath);
-                    if (existingDoc == null)
-                    {
-                        moduleBeingBuilt.AddDebugDocument(MakeDebugSourceDocumentForTree(normalizedPath, tree));
-                    }
-                }
-            }
-
-            // Add debug documents for all pragmas. 
-            // If there are clashes with already processed directives, report warnings.
-            // If there are clashes with debug documents that came from actual trees, ignore the pragma.
-            foreach (var tree in syntaxTrees)
-            {
-                AddDebugSourceDocumentsForChecksumDirectives(moduleBeingBuilt, tree, diagnostics);
-            }
-
-            return true;
         }
 
         private IEnumerable<string> AddedModulesResourceNames(DiagnosticBag diagnostics)
@@ -2538,8 +2468,8 @@ namespace Microsoft.CodeAnalysis.CSharp
             return emitOptions.RuntimeMetadataVersion;
         }
 
-        private static void AddDebugSourceDocumentsForChecksumDirectives(
-            PEModuleBuilder moduleBeingBuilt,
+        internal override void AddDebugSourceDocumentsForChecksumDirectives(
+            DebugDocumentsBuilder documentsBuilder,
             SyntaxTree tree,
             DiagnosticBag diagnostics)
         {
@@ -2552,8 +2482,8 @@ namespace Microsoft.CodeAnalysis.CSharp
                 var path = checksumDirective.File.ValueText;
 
                 var checksumText = checksumDirective.Bytes.ValueText;
-                var normalizedPath = moduleBeingBuilt.NormalizeDebugDocumentPath(path, basePath: tree.FilePath);
-                var existingDoc = moduleBeingBuilt.TryGetDebugDocumentForNormalizedPath(normalizedPath);
+                var normalizedPath = documentsBuilder.NormalizeDebugDocumentPath(path, basePath: tree.FilePath);
+                var existingDoc = documentsBuilder.TryGetDebugDocumentForNormalizedPath(normalizedPath);
 
                 // duplicate checksum pragmas are valid as long as values match
                 // if we have seen this document already, check for matching values.
@@ -2591,7 +2521,7 @@ namespace Microsoft.CodeAnalysis.CSharp
                         MakeChecksumBytes(checksumDirective.Bytes.ValueText),
                         Guid.Parse(checksumDirective.Guid.ValueText));
 
-                    moduleBeingBuilt.AddDebugDocument(newDocument);
+                    documentsBuilder.AddDebugDocument(newDocument);
                 }
             }
         }
@@ -2635,15 +2565,7 @@ namespace Microsoft.CodeAnalysis.CSharp
             return builder.ToImmutableAndFree();
         }
 
-        private static Cci.DebugSourceDocument MakeDebugSourceDocumentForTree(string normalizedPath, SyntaxTree tree)
-        {
-            return new Cci.DebugSourceDocument(normalizedPath, Cci.DebugSourceDocument.CorSymLanguageTypeCSharp, () => tree.GetDebugSourceInfo());
-        }
-
-        private static Cci.DebugSourceDocument MakeDebugSourceDocumentForEmbeddedText(string normalizedPath, EmbeddedText text)
-        {
-            return new Cci.DebugSourceDocument(normalizedPath, Cci.DebugSourceDocument.CorSymLanguageTypeCSharp, () => text.GetDebugSourceInfo());
-        }
+        internal override Guid DebugSourceDocumentLanguageId => Cci.DebugSourceDocument.CorSymLanguageTypeCSharp;
 
         internal override bool HasCodeToEmit()
         {
