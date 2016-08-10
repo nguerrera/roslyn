@@ -1969,6 +1969,15 @@ namespace Microsoft.CodeAnalysis {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to (Unknown).
+        /// </summary>
+        internal static string paren_Unknown_paren {
+            get {
+                return ResourceManager.GetString("paren_Unknown_paren", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to &lt;Pending&gt;.
         /// </summary>
         internal static string Pending {
@@ -2082,6 +2091,15 @@ namespace Microsoft.CodeAnalysis {
         internal static string Remove_Suppression_0 {
             get {
                 return ResourceManager.GetString("Remove_Suppression_0", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Remove tag.
+        /// </summary>
+        internal static string Remove_tag {
+            get {
+                return ResourceManager.GetString("Remove_tag", resourceCulture);
             }
         }
         

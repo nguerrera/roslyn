@@ -90,11 +90,9 @@
     <Compile Include="Implementation\Preview\ReferenceChange.AnalyzerReferenceChange.cs" />
     <Compile Include="Implementation\Preview\ReferenceChange.ProjectReferenceChange.cs" />
     <Compile Include="Implementation\Preview\ReferenceChange.cs" />
+    <Compile Include="Implementation\ProjectSystem\CPS\ICodeModelFactory.cs" />
     <Compile Include="Implementation\ProjectSystem\Legacy\AbstractLegacyProject_ICompilerOptionsHostObject.cs" />
     <Compile Include="Implementation\ProjectSystem\Legacy\AbstractLegacyProject_IIntellisenseBuildTarget.cs" />
-    <Compile Include="Implementation\ProjectSystem\CPS\CPSProject.cs" />
-    <Compile Include="Implementation\ProjectSystem\CPS\CPSProject_IWorkspaceProjectContext.cs" />
-    <Compile Include="Implementation\ProjectSystem\CPS\CPSProjectFactory.cs" />
     <Compile Include="Implementation\ProjectSystem\CPS\IWorkspaceProjectContextFactory.cs" />
     <Compile Include="Implementation\ProjectSystem\CPS\IWorkspaceProjectContext.cs" />
     <Compile Include="Implementation\ProjectSystem\AbstractProject_Options.cs" />
@@ -261,6 +259,7 @@
     <Reference Include="System.ComponentModel.Composition" />
   </ItemGroup>
   <ItemGroup>
+    <InternalsVisibleTo Include="Microsoft.VisualStudio.LanguageServices.Next" />
     <InternalsVisibleTo Include="Microsoft.VisualStudio.LanguageServices.CSharp" />
     <InternalsVisibleTo Include="Microsoft.VisualStudio.LanguageServices.Implementation" />
     <InternalsVisibleTo Include="Microsoft.VisualStudio.LanguageServices.SolutionExplorer" />

@@ -126,6 +126,7 @@
     <Compile Include="CodeFixes\SimplifyTypeNames\SimplifyTypeNamesCodeFixProvider.vb" />
     <Compile Include="CodeFixes\Spellcheck\VisualBasicSpellCheckCodeFixProvider.vb" />
     <Compile Include="CodeFixes\Suppression\VisualBasicSuppressionCodeFixProvider.vb" />
+    <Compile Include="CodeLens\VisualBasicDisplayInfoService.vb" />
     <Compile Include="CodeRefactorings\ConvertToInterpolatedString\ConvertToInterpolatedStringRefactoringProvider.vb" />
     <Compile Include="CodeRefactorings\EncapsulateField\EncapsulateFieldRefactoringProvider.vb" />
     <Compile Include="CodeRefactorings\ExtractInterface\ExtractInterfaceCodeRefactoringProvider.vb" />
@@ -302,6 +303,7 @@
     <Compile Include="Diagnostics\VisualBasicAnalyzerDriverService.vb" />
     <Compile Include="DocumentationComments\DocumentationCommentUtilities.vb" />
     <Compile Include="DocumentationComments\VisualBasicDocumentationCommentFormattingService.vb" />
+    <Compile Include="DocumentationComments\CodeFixes\VisualBasicRemoveDocCommentNodeCodeFixProvider.vb" />
     <Compile Include="EditAndContinue\BreakpointSpans.vb" />
     <Compile Include="EditAndContinue\StatementSyntaxComparer.vb" />
     <Compile Include="EditAndContinue\SyntaxComparer.vb" />

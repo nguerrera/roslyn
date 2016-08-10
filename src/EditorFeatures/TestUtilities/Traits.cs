@@ -74,6 +74,7 @@ namespace Roslyn.Test.Utilities
             public const string CodeActionsReplaceMethodWithProperty = "CodeActions.ReplaceMethodWithProperty";
             public const string CodeActionsReplacePropertyWithMethods = "CodeActions.ReplacePropertyWithMethods";
             public const string CodeActionsRemoveByVal = "CodeActions.RemoveByVal";
+            public const string CodeActionsRemoveDocCommentNode = "CodeActions.RemoveDocCommentNode";
             public const string CodeActionsRemoveUnnecessaryCast = "CodeActions.RemoveUnnecessaryCast";
             public const string CodeActionsRemoveUnnecessaryImports = "CodeActions.RemoveUnnecessaryImports";
             public const string CodeActionsSimplifyTypeNames = "CodeActions.SimplifyTypeNames";
@@ -84,6 +85,7 @@ namespace Roslyn.Test.Utilities
             public const string CodeActionsUseExplicitType = "CodeActions.UseExplicitType";
             public const string CodeGeneration = nameof(CodeGeneration);
             public const string CodeGenerationSortDeclarations = "CodeGeneration.SortDeclarations";
+            public const string CodeLens = nameof(CodeLens);
             public const string CodeModel = nameof(CodeModel);
             public const string CodeModelEvents = "CodeModel.Events";
             public const string CodeModelMethodXml = "CodeModel.MethodXml";

@@ -139,6 +139,7 @@
     <Compile Include="CodeActions\MoveType\MoveTypeTests.RenameFile.vb" />
     <Compile Include="CodeActions\Preview\PreviewTests.vb" />
     <Compile Include="CodeActions\ReplacePropertyWithMethods\ReplacePropertyWithMethodsTests.vb" />
+    <Compile Include="CodeLens\VisualBasicCodeLensTests.vb" />
     <Compile Include="Completion\CompletionServiceTests.vb" />
     <Compile Include="Diagnostics\AddImport\AddImportTests_NuGet.vb" />
     <Compile Include="Diagnostics\ImplementAbstractClass\ImplementAbstractClassTests_FixAllTests.vb" />
@@ -201,6 +202,7 @@
     <Compile Include="Diagnostics\Suppression\SuppressionAllCodeTests.vb" />
     <Compile Include="Diagnostics\Suppression\SuppressionTests.vb" />
     <Compile Include="Diagnostics\UseAutoProperty\UseAutoPropertyTests.vb" />
+    <Compile Include="DocumentationComments\CodeFixes\RemoveDocCommentNodeCodeFixProviderTests.vb" />
     <Compile Include="DocumentationComments\DocumentationCommentTests.vb" />
     <Compile Include="DocumentationComments\XmlTagCompletionTests.vb" />
     <Compile Include="EditAndContinue\ActiveStatementTests.vb" />
