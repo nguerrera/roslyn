@@ -1555,15 +1555,17 @@ namespace Microsoft.CodeAnalysis
                 foreach (var text in embeddedTexts)
                 {
                     Debug.Assert(!string.IsNullOrEmpty(text.FilePath));
-
                     string normalizedPath = documentsBuilder.NormalizeDebugDocumentPath(text.FilePath, basePath: null);
                     var existingDoc = documentsBuilder.TryGetDebugDocumentForNormalizedPath(normalizedPath);
                     if (existingDoc == null)
                     {
-                        documentsBuilder.AddDebugDocument(new Cci.DebugSourceDocument(
+                        var document = new Cci.DebugSourceDocument(
                             normalizedPath,
                             DebugSourceDocumentLanguageId,
-                            () => text.GetDebugSourceInfo()));
+                            () => text.GetDebugSourceInfo());
+
+                        documentsBuilder.AddDebugDocument(document);
+                        embeddedDocuments.Add(document);
                     }
                 }
 
